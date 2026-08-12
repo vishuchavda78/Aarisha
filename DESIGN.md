@@ -11,9 +11,9 @@ The system embodies the regal essence of Indian heritage, drawing on the
 architectural majesty of **Rani ki Vav**. The personality is **stately, timeless,
 curated** — museum-quality minimalism fused with ornate line art. Expansive dark
 (forest) space contrasted with fine metallic gold linework creates an immersive
-"digital gallery" rather than a retail store. Key motifs: the **Jharokha**
-(mirrored arch), the cusped **pavilion arch**, colonnade bands, and the descending
-**step-well** levels.
+"digital gallery" rather than a retail store. Key motifs: the **baroque mirror
+frame** (ornate gold oval, hero mark), the cusped **pavilion arch**, colonnade
+bands, and the descending **step-well** levels.
 
 ## Colors (Forest & Gold)
 
@@ -72,27 +72,18 @@ desktop, 20–24px mobile — for breathing room. Spacing unit 8px; section padd
 ## Shapes
 
 Soft-squared: 4px radius (`0.125rem`) on plaques/controls — "cut like a
-gemstone". The exception is the **Architectural Motif**: the Jharokha arch
-(straight vertical edges + multi-cusped top) used for specialized frames (hero
-mark, background line art) as custom vector paths, not radii.
+gemstone". The exception is the **Hero Mirror Frame**: an ornate baroque gold
+oval frame (`frontend/mirror-frame.png`) used as the hero mark, and the backdrop
+monument line art, both rendered as transparent PNGs rather than CSS radii.
 
 ## The Rani ki Vav motif + cursor line-glow
 
-Artwork: the storefront inlines a hidden sprite in `frontend/index.html`
-(symbols `stepwell-motif`, `stepwell-motif-slim`, `stepwell-frieze`, `stepwell-shaft`).
-Pure monoline (stroke-width 1.5, `currentColor`), architecture only — no
-figurative carving.
+Artwork: the storefront uses a gold-on-transparent PNG (`frontend/monument-lineart.png`) processed from the detailed reference drawing of Rani ki Vav perspective. It features a rich, highly detailed perspective composition looking down the stepwell shaft, complete with walls, columns, side galleries, descending step levels, and the surveyor figure in the bottom left.
 
-- **Backdrop**: one fixed full-screen `.heritage-bg` layer (forest ground, gold
-  linework at rest opacity 0.07, edge vignette). Sections are transparent over it.
-- **Cursor line-glow** (pointer devices): a masked copy of the artwork
-  (`--glow-x/--glow-y`, rAF-throttled by `script.js`) brightens within ~240px of
-  the pointer; a `drop-shadow` on the glow copy makes **the lines themselves emit
-  light** — not a radial light source.
-- **Ambient pulse** (touch/keyboard): 9s breathing between rest and rest+0.12 on
-  the base copy; triggered for touch devices and on first Tab key.
+- **Backdrop**: one fixed full-screen `.heritage-bg` layer (forest ground, gold linework at rest opacity 0.12, edge vignette). Sections are transparent over it. The layer consists of two identical image elements (`.motif-base` and `.motif-glow`) pointing to the processed PNG.
+- **Cursor line-glow** (pointer devices): a masked copy of the artwork image (`--glow-x/--glow-y`, rAF-throttled by `script.js`) brightens within ~240px of the pointer; a `drop-shadow` on the glow copy makes **the lines themselves emit light** — not a radial light source.
+- **Ambient pulse** (touch/keyboard): 9s breathing between rest and rest+0.12 on the base copy; triggered for touch devices and on first Tab key.
 - **Reduced motion**: both disabled; the motif renders at a static raised opacity.
-- ≤768px the slim (no-lattice) symbol is used.
 
 ## Components
 
@@ -114,7 +105,7 @@ figurative carving.
 Marketing/brand site — motion is part of the brand experience, restrained.
 
 - Scroll reveals: fade + 40px translate, one-shot, sibling stagger 150ms.
-- Hero entrance: reveal on load (observer), jharokha + headline + CTA stagger.
+- Hero entrance: reveal on load (observer), mirror frame + headline + CTA stagger.
 - Hover lifts: cards `-6..8px`, images scale `1.05`, buttons fill gold.
 - Glow pulse: `--transition-glow` (0.25s, `cubic-bezier(0.4,0,0.2,1)`).
 - Drawer/modal: slide + fade (0.35–0.5s, `--transition-smooth`).

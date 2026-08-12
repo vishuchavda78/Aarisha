@@ -111,22 +111,28 @@ button {
   inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
 }
 
-/* Rest-state copy (low opacity) */
+/* Rest-state copy (low opacity) — raised to 0.12 so the detailed ornament reads */
 .heritage-bg .motif-base {
-  opacity: var(--rest-op, 0.07);
+  opacity: var(--rest-op, 0.12);
 }
 
-/* Glow copy: identical artwork with a drop-shadow so every line carries its own
-   halo ("lines glow, not a radial light source"), masked to the cursor window.
-   Mask-position updates stay compositor-friendly (opacity + gradient position). */
+/* Glow copy: identical artwork with layered drop-shadows so every line carries
+   its own halo — light emanates FROM the lines, not a flashlight ON them.
+   The mask is deliberately huge (550px) with a very gradual falloff so there is
+   no visible spotlight circle; you simply notice lines near the cursor are
+   brighter and radiating warmth outward. */
 .heritage-bg .motif-glow {
   opacity: 0;
   transition: opacity 0.25s var(--transition-glow);
-  filter: drop-shadow(0 0 9px rgba(235, 193, 102, 0.85)) drop-shadow(0 0 3px rgba(235, 193, 102, 0.9));
-  -webkit-mask-image: radial-gradient(circle 240px at var(--glow-x, 50%) var(--glow-y, 50%), #000 0%, rgba(0, 0, 0, 0.9) 40%, transparent 74%);
-  mask-image: radial-gradient(circle 240px at var(--glow-x, 50%) var(--glow-y, 50%), #000 0%, rgba(0, 0, 0, 0.9) 40%, transparent 74%);
+  filter: drop-shadow(0 0 2px rgba(255, 220, 140, 0.9))
+          drop-shadow(0 0 10px rgba(235, 193, 102, 0.75))
+          drop-shadow(0 0 24px rgba(235, 193, 102, 0.5));
+  -webkit-mask-image: radial-gradient(circle 550px at var(--glow-x, 50%) var(--glow-y, 50%), rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.07) 65%, transparent 100%);
+  mask-image: radial-gradient(circle 550px at var(--glow-x, 50%) var(--glow-y, 50%), rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.07) 65%, transparent 100%);
 }
 
 .heritage-bg.glowing .motif-glow {
@@ -136,17 +142,15 @@ button {
 /* Ambient pulse — touch/keyboard fallback: slow breathing between rest and
    rest+0.12, applied to the base copy. */
 @keyframes heritage-pulse {
-  0%, 100% { opacity: var(--rest-op, 0.07); }
-  50%      { opacity: calc(var(--rest-op, 0.07) + 0.12); }
+  0%, 100% { opacity: var(--rest-op, 0.12); }
+  50%      { opacity: calc(var(--rest-op, 0.12) + 0.12); }
 }
 
 .heritage-bg.pulse .motif-base {
   animation: heritage-pulse 9s ease-in-out infinite;
 }
 
-/* ≤768px: the full composition drops the corner lattice (slim variant) */
-.u-full { display: block; }
-.u-slim { display: none; }
+/* u-full and u-slim styles removed as background is now a single image */
 
 /* Content rides above the fixed backdrop */
 main,
@@ -314,30 +318,20 @@ main,
   max-width: 900px;
 }
 
-/* Jharokha frame — the mirrored-arch motif as a hero mark */
-.jharokha-frame {
+/* Mirror frame — the baroque gold mirror frame as a hero mark */
+.mirror-frame {
   position: relative;
   width: 172px;
-  height: 188px;
+  height: 230px;
   margin: 0 auto 40px;
-  color: var(--gold);
 }
 
-.jharokha-arch {
+.mirror-frame-img {
   width: 100%;
   height: 100%;
-  opacity: 0.9;
+  object-fit: contain;
+  opacity: 0.95;
   filter: drop-shadow(0 0 14px rgba(235, 193, 102, 0.35));
-}
-
-.hero-diamond {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 46px;
-  height: 46px;
-  color: var(--gold-light);
-  filter: drop-shadow(0 0 10px rgba(235, 193, 102, 0.55));
 }
 
 .hero-eyebrow {
@@ -1315,9 +1309,7 @@ main,
   .nav-links { display: none; }
   .nav-brand { letter-spacing: 0.22em; font-size: 18px; }
 
-  /* Full composition drops the corner lattice on narrow columns */
-  .u-full { display: none; }
-  .u-slim { display: block; }
+  /* Responsive backdrop image scaling is handled by object-fit */
 
   .hero { padding: 110px 20px 60px; }
 
@@ -1385,7 +1377,7 @@ main,
   .nav-icon-btn { width: 36px; height: 36px; }
 
   .hero { min-height: 92vh; padding: 100px 16px 56px; }
-  .jharokha-frame { width: 140px; height: 154px; margin-bottom: 32px; }
+  .mirror-frame { width: 140px; height: 187px; margin-bottom: 32px; }
   .hero-title { font-size: clamp(44px, 12vw, 58px); }
   .hero-tagline { letter-spacing: 0.02em; margin-bottom: 34px; }
   .btn-outline-gold { padding: 15px 26px; letter-spacing: 0.12em; }
@@ -1458,6 +1450,6 @@ main,
   .heritage-bg { animation: none; }
   .heritage-bg .motif-glow { display: none; }
   .heritage-bg .motif-base {
-    opacity: calc(var(--rest-op, 0.07) + 0.06) !important;
+    opacity: calc(var(--rest-op, 0.12) + 0.06) !important;
   }
 }

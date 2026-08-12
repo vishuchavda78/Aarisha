@@ -5,6 +5,32 @@
 > operating document (RULES.md, UISKILL.md) writes into this single shared file under
 > category-tagged subsections.
 
+## [2026-08-12 22:45]
+
+### [Category: UI] — Replace hero Jharokha SVG with ornate gold mirror frame
+What changed:
+- Extracted the baroque gold mirror frame from the owner's brand asset `the_aarisha.png` to `frontend/mirror-frame.png` (209×279, gold-on-transparent — outer green and inner white made transparent).
+- `frontend/index.html`: Replaced the 14-line inline SVG Jharokha arch + diamond motif (`.jharokha-frame`) with a single `<img>` tag loading `mirror-frame.png` (`.mirror-frame`).
+- `frontend/styles.css`: Replaced `.jharokha-frame`, `.jharokha-arch`, `.hero-diamond` rules with `.mirror-frame` + `.mirror-frame-img` (172×230px, `object-fit: contain`, gold `drop-shadow`). Updated the 600px responsive breakpoint to scale the frame to 140×187px.
+- Docs updated: `DESIGN.md` (key motifs, shapes, motion inventory), `context.md` (feature list, v3 redesign description).
+Why: The owner provided a brand card (`the_aarisha.png`) with an ornate baroque gold mirror frame and requested it replace the basic Jharokha arch SVG in the hero section.
+
+## [2026-08-12 22:40]
+
+### [Category: UI] — Processed perspective Rani ki Vav image backdrop + styling integration
+What changed:
+- Processed the detailed monochrome perspective line drawing `Gemini_Generated_Image_jgukn1jgukn1jguk.png` to a gold-on-transparent (`#c9a24b`) PNG `frontend/monument-lineart.png` (616 KB) using PIL & NumPy, preserving variable stroke-width and hatching details.
+- `frontend/index.html`: Removed the legacy ~240-line inline SVG sprite elements (cornices, columns, niches, steps, etc.). Replaced the two `<svg class="motif">` layers within the `.heritage-bg` container with `<img>` tags pointing to `monument-lineart.png`.
+- `frontend/styles.css`: Adapted `.heritage-bg .motif` to support `<img>` scaling using `object-fit: cover; object-position: center bottom;` to preserve the original viewport composition. Removed obsolete `.u-full` and `.u-slim` visibility rules from standard declarations and the 768px media query.
+- Docs updated: Updated `DESIGN.md` and `context.md` to reflect the transition from SVG sprites to the high-detail transparent PNG asset.
+Why: The owner requested replacing the basic elevation-sketch monument backdrop with the detailed perspective composition from `Gemini_Generated_Image_jgukn1jgukn1jguk.png` while maintaining the identical green backdrop, text content, and interactive cursor line-glow.
+
+## [2026-08-12 22:20]
+
+### [Category: UI] — Detailed Rani ki Vav backdrop artwork + raised rest opacity
+What changed: Rebuilt the heritage-backdrop monument line-art in `frontend/index.html` (inline sprites `stepwell-motif` + `stepwell-motif-slim`) from a sparse ~60-line sketch into a highly ornate Rani ki Vav facade matching the owner's reference image (`Gemini_Generated_Image_jgukn1jgukn1jguk.png`, supplied this run): full-width cornice/frieze band (terminal brackets, repeated cusped frieze arches, dentil band, hanging pendant drops), corner diamond lattices (full variant only), a three-tiered central shrine (finial spike, nested cusped arches per tier, inner sanctum with hanging chain-lamps + bells, flanking colonnettes), jharokha side pavilions with balustrade balconies + plinths, a divider line, two colonnade bands of pointed arches with columns, a niche row (outer/inner arches + finial spikes + pillars), six descending step treads, and a central well (double rings, spokes, diagonals) with ground line. Same viewBox (1200×800), same `<g>` stroke attributes, same symbol IDs, so no JS/CSS structure changed. `frontend/styles.css`: raised the backdrop rest opacity from 0.07 → 0.12 (`.motif-base`, `heritage-pulse` keyframes, and the `prefers-reduced-motion` static variant) so the detailed ornament reads at rest while staying a muted backdrop. The existing cursor line-glow (drop-shadowed `.motif-glow` masked to `--glow-x/--glow-y`) is untouched and now reveals the richer artwork. Docs updated: `DESIGN.md` (motif section — new artwork description + 0.12 rest opacity), `context.md` (feature list + UI/Motion signature interaction).
+Why: Owner request — the existing monument line-art was "very basic with no details"; the reference image shows an ornate, densely detailed Indian stepwell/monument facade. Owner confirmed via ask_user: keep the current forest-green backdrop and `--gold #C9A24B` line colour, render the detailed Rani ki Vav composition, raise rest opacity to ~0.12, and keep the lines acting as a light source that glows on hover. Web content/text unchanged.
+
 ## [2026-08-12]
 
 ### [Category: Dev] — Remove admin portal and dead assets
