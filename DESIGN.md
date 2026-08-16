@@ -114,11 +114,15 @@ Marketing/brand site — motion is part of the brand experience, restrained.
 
 ## Responsive
 
-Breakpoints: 1200 / 768 / 600 / 360. At 768px the nav links
-hide (brand + icons remain), collections drop to 2 columns, the slim motif is
-used, and the footer/contact/about grids stack. At 600px paddings compress,
-hero title shrinks, insta grid goes 2-up, buttons go full-width in forms. At
-360px collection grids go single-column.
+Breakpoints: 1200 / 900 / 768 / 600 / 360. At 900px the nav links collapse
+into the full-screen hamburger menu (`.mobile-menu` — brand + icon actions
+remain); at 768px collections drop to 2 columns and the footer/contact/about
+grids stack. At 600px paddings compress, hero title shrinks, insta grid goes
+2-up, buttons go full-width in forms, and the placeholder Search/Account nav
+buttons hide so the brand, hamburger, and cart stay uncrowded. At 360px
+collection grids go single-column. Overlays (mobile menu, collection modal,
+cart drawer) trap focus while open, are `inert` when closed, and Escape closes
+the topmost one.
 
 ## Accessibility baseline
 

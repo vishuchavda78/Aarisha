@@ -12,6 +12,7 @@
   <link rel="icon" href="Logo.png">
 </head>
 <body>
+<a class="skip-link" href="#mainContent">Skip to content</a>
 
 <!-- Ambient Heritage backdrop — fixed full-screen forest ground with the gold
      Rani ki Vav monument line-art (processed from the reference image). The
@@ -25,14 +26,18 @@
 
 <!-- ═══ NAVIGATION ═══ -->
 <nav class="navbar" id="navbar">
+  <a href="#hero" class="nav-brand" aria-label="Aarisha home">The Aarisha</a>
   <div class="nav-links">
     <a href="#collections">Collections</a>
     <a href="#about">Heritage</a>
     <a href="#why">Bespoke</a>
     <a href="#contact">Contact</a>
   </div>
-  <a href="#hero" class="nav-brand" aria-label="Aarisha home">The Aarisha</a>
   <div class="nav-actions">
+    <button class="nav-icon-btn nav-menu-toggle" id="menuToggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu">
+      <svg class="menu-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      <svg class="menu-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+    </button>
     <button class="nav-icon-btn" type="button" aria-label="Search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
     </button>
@@ -46,7 +51,18 @@
   </div>
 </nav>
 
-<main>
+<!-- ═══ MOBILE NAVIGATION ═══ -->
+<div class="mobile-menu" id="mobileMenu" aria-hidden="true" inert>
+  <button class="mobile-menu-close" id="menuClose" type="button" aria-label="Close menu">&times;</button>
+  <nav class="mobile-menu-nav" aria-label="Mobile navigation">
+    <a href="#collections">Collections</a>
+    <a href="#about">Heritage</a>
+    <a href="#why">Bespoke</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</div>
+
+<main id="mainContent" tabindex="-1">
   <!-- ═══ HERO ═══ -->
   <section class="hero" id="hero">
     <div class="hero-content">
@@ -71,31 +87,31 @@
   <section class="collections-section" id="collections">
     <h2 class="section-heading reveal">Curated Collections</h2>
     <div class="collections-grid">
-      <div class="collection-card reveal" data-category="NeckPieces">
+      <div class="collection-card reveal" data-category="NeckPieces" role="button" tabindex="0" aria-label="Browse the Neck Pieces collection">
         <div class="collection-card-frame" aria-hidden="true"></div>
         <div class="collection-card-img">
-          <img src="placeholder.svg" alt="Neck Pieces Collection">
+          <img src="necklace.jpeg" alt="Neck Pieces Collection">
           <div class="collection-overlay"><h3>Neck Pieces</h3></div>
         </div>
       </div>
-      <div class="collection-card reveal" data-category="Bracelets">
+      <div class="collection-card reveal" data-category="Bracelets" role="button" tabindex="0" aria-label="Browse the Bracelets collection">
         <div class="collection-card-frame" aria-hidden="true"></div>
         <div class="collection-card-img">
-          <img src="placeholder.svg" alt="Bracelets Collection">
+          <img src="bracelets.jpeg" alt="Bracelets Collection">
           <div class="collection-overlay"><h3>Bracelets</h3></div>
         </div>
       </div>
-      <div class="collection-card reveal" data-category="Earrings">
+      <div class="collection-card reveal" data-category="Earrings" role="button" tabindex="0" aria-label="Browse the Earrings collection">
         <div class="collection-card-frame" aria-hidden="true"></div>
         <div class="collection-card-img">
-          <img src="placeholder.svg" alt="Earrings Collection">
+          <img src="earrings.jpeg" alt="Earrings Collection">
           <div class="collection-overlay"><h3>Earrings</h3></div>
         </div>
       </div>
-      <div class="collection-card reveal" data-category="Rings">
+      <div class="collection-card reveal" data-category="Rings" role="button" tabindex="0" aria-label="Browse the Rings collection">
         <div class="collection-card-frame" aria-hidden="true"></div>
         <div class="collection-card-img">
-          <img src="placeholder.svg" alt="Rings Collection">
+          <img src="rings.jpeg" alt="Rings Collection">
           <div class="collection-overlay"><h3>Rings</h3></div>
         </div>
       </div>
@@ -106,7 +122,7 @@
   <section class="featured-section" id="featured">
     <h2 class="section-heading reveal">Handpicked for You</h2>
     <div class="featured-scroll-wrapper">
-      <div class="featured-scroll" id="featuredScroll"></div>
+      <div class="featured-scroll" id="featuredScroll" role="region" aria-label="Featured products — scroll horizontally" tabindex="0"></div>
     </div>
   </section>
 
@@ -222,16 +238,17 @@
 </footer>
 
 <!-- ═══ COLLECTION DETAIL MODAL ═══ -->
-<div class="collection-modal" id="collectionModal">
+<div class="collection-modal" id="collectionModal" role="dialog" aria-modal="true" aria-labelledby="modalCategoryTitle" inert>
   <div class="collection-modal-inner">
     <div class="collection-modal-header">
-      <div class="collection-modal-title-row">
+      <div class="modal-topbar">
         <button class="modal-back-btn" id="modalBackBtn" aria-label="Back to Collections">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5m0 0l7 7m-7-7l7-7"/></svg>
           <span>Back to Collections</span>
         </button>
-        <h2 class="modal-category-title" id="modalCategoryTitle">Earrings</h2>
+        <span class="modal-topbar-title" id="modalTopbarTitle" aria-hidden="true"></span>
       </div>
+      <h2 class="modal-category-title" id="modalCategoryTitle">Earrings</h2>
       <div class="ornamental-divider"><div class="line"></div><div class="diamond"></div><div class="line"></div></div>
     </div>
     <div class="collection-modal-grid" id="modalProductGrid"></div>
@@ -239,8 +256,8 @@
 </div>
 
 <!-- Cart: WhatsApp is the only ordering path; no payment or checkout is present. -->
-<aside class="cart-drawer" id="cartDrawer" aria-label="Shopping bag" aria-hidden="true">
-  <div class="cart-header"><h2>Your Bag</h2><button class="cart-close" id="cartClose" type="button" aria-label="Close bag">&times;</button></div>
+<aside class="cart-drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-labelledby="cartTitle" aria-hidden="true" inert>
+  <div class="cart-header"><h2 id="cartTitle">Your Cart</h2><button class="cart-close" id="cartClose" type="button" aria-label="Close cart">&times;</button></div>
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-footer">
     <p class="cart-total">Total <strong id="cartTotal">₹0</strong></p>
@@ -250,6 +267,13 @@
 
 <div class="cart-scrim" id="cartScrim"></div>
 
+<span class="visually-hidden" id="cartLive" aria-live="polite"></span>
+
+<!-- Toast — confirms add-to-cart; announced politely for screen readers -->
+<div class="toast" id="cartToast" role="status" aria-live="polite">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+  <span id="cartToastMsg"></span>
+</div>
 <script src="script.js"></script>
 </body>
 </html>

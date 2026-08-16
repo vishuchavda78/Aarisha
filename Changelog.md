@@ -5,6 +5,75 @@
 > operating document (RULES.md, UISKILL.md) writes into this single shared file under
 > category-tagged subsections.
 
+## [2026-08-16 23:30]
+
+### [Category: UI] — Add-to-cart toast, bag→cart rename, two buttons on every product card
+What changed:
+- **Toast**: added a brand-styled toast (`.toast` — ivory plaque, gold border, gold ✓ icon, fixed bottom-centre, `role="status"` + `aria-live="polite"`, auto-dismiss ~2.6s, `pointer-events: none` so it never blocks taps). `showToast()` fires from `addToCart()`, so adding from the modal or the featured strip confirms with "{name} added to cart".
+- **bag→cart**: "Your Bag"→"Your Cart", "Close bag"→"Close cart", "Add to Bag"→"Add to Cart", "Your bag is waiting…"→"Your cart is waiting…", aria-live "in your bag"→"in your cart", plus the matching comments and `context.md` feature descriptions (historical `Changelog.md` entries left as-is).
+- **Two buttons on product cards** (modal cards + featured-strip cards): a shared `.card-actions` wrapper now holds **Add to Cart** (primary dark/gold) and **Order on WhatsApp** (new outline secondary). Out-of-stock disables both and labels the add button "Out of Stock". The per-product WhatsApp button POSTs just that item (quantity 1) to `/orders/whatsapp-link` and opens the `wa.me` draft — independent of the cart; the drawer's whole-cart WhatsApp order is unchanged. Featured cards gained interactivity (they were display-only) and store their buttons per card.
+Why: Owner request — visible confirmation when adding to cart, consistent "cart" terminology, and direct order paths (cart vs WhatsApp) on every product card.
+Verification: headless-Chrome probe at 375/1024px with a stubbed catalogue API — featured and modal cards each render both buttons with correct in/out-of-stock states, toast appears on add (featured + modal) and auto-dismisses, drawer header reads "Your Cart", zero overflow. `node --check` passes.
+
+## [2026-08-16 23:10]
+
+### [Category: UI] — Navbar reorder (brand left, links centred) + nav links now work over the product modal
+What changed:
+- `frontend/index.html`: reordered the navbar children to **brand → nav-links → nav-actions** and moved the mobile hamburger toggle back into `.nav-actions` — desktop now reads THE AARISHA (left) · Collections/Heritage/Bespoke/Contact (centre) · icons (right); mobile reads THE AARISHA (left) · ☰ + 🛍 (right).
+- `frontend/styles.css`: pinned explicit grid placement so the order survives every breakpoint (`grid-column: 1` + `justify-self: start` on `.nav-brand`, `grid-column: 2` + `justify-self: center` on `.nav-links`, `grid-column: 3` + `justify-self: end` on `.nav-actions`) — this matters because auto-placement would misplace the actions when nav-links are `display:none` ≤900px. Removed the toggle's obsolete `justify-self: start`.
+- `frontend/script.js`: the anchor smooth-scroll handler now closes whatever overlay is open (mobile menu → collection modal → cart drawer) *before* scrolling — previously, clicking a nav link while the product modal was open scrolled the locked page behind the modal, so the navigation appeared to do nothing.
+Why: Owner request — brand should sit left with navigation centred, and the navigation links must actually work from the product (category-modal) section.
+Verification: headless-Chrome probe at 375/768/1024/1440px — brand left / links centred (within ~7px of viewport/2) / actions right; with the modal open, clicking a nav link closes it, releases the scroll lock, and lands the target section at the 96px navbar clearance; zero horizontal overflow.
+
+## [2026-08-16 22:50]
+
+### [Category: UI] — De-duplicate the category name in the product modal (progressive disclosure)
+What changed:
+- `frontend/styles.css`: the compact category label in the sticky top bar (`.modal-topbar-title`) is now hidden by default (`opacity: 0`, `pointer-events: none`) and fades in only under `.collection-modal.has-scrolled` — so the category name is never shown twice. Also added `.navbar.modal-open` (same glass surface as `.navbar.scrolled`) so the navbar stays legible above the modal even when the page is at the top.
+- `frontend/script.js`: a passive `scroll` listener on the modal toggles `.has-scrolled` once `scrollTop` passes the large heading's `offsetTop` (transform-independent, computed when the modal opens); the navbar gains/ loses `.modal-open` when the modal opens/closes.
+Why: Owner feedback (screenshot) — the category name appeared twice in the modal (compact label in the pinned bar + large heading below the divider); the label now collapses in as the heading scrolls away, the standard iOS-style pattern.
+Verification: headless-Chrome probe at 375/768/1440px — label hidden at rest, `.has-scrolled` toggles past the threshold, label renders at opacity 1 once the (probe-disabled) fade completes, navbar `.modal-open` applied, zero overflow.
+
+## [2026-08-16 22:30]
+
+### [Category: UI] — Navbar stays visible over the product modal + sticky back-button bar
+What changed:
+- `frontend/styles.css`: lowered `.collection-modal` `z-index` from 1100 → **950** (below the fixed navbar's 1000) so the navbar — links/brand/cart icons — remains visible above the category modal while browsing products. The mobile menu (1050) and cart drawer (3000) still layer above it, so their close controls are never covered.
+- Added a **sticky top bar** (`.modal-topbar`) inside the modal: the Back to Collections button (left) + a compact category label (centered, `aria-hidden` duplicate of the h2) pin just below the navbar while products scroll beneath — `top: 84px` desktop, 76px ≤1200, 68px ≤768 — with a solid forest-deep ground so cards scroll under cleanly. Replaces the old `.collection-modal-title-row`; the big centered category title + ornamental divider remain as scrolling content.
+- `frontend/index.html`: restructured the modal header — sticky topbar (back button + compact label) above the big title + divider.
+- `frontend/script.js`: populates the compact topbar label from the same category display name (`#modalTopbarTitle`).
+Why: Owner request — the navbar should stay visible throughout the site (it was fully hidden under the opaque full-screen modal), and the back button should stay within easy reach without obstructing product browsing (it previously scrolled out of view with the content).
+Verification: headless-Chrome probe at 320/375/600/768/1024/1440px — `navbar.z(1000) > modal.z(950)` everywhere, topbar `position: sticky` with the right per-breakpoint offset, label populates on open, zero horizontal overflow.
+
+## [2026-08-16 22:05]
+
+### [Category: UI] — Fix mobile navbar: icon swap, centered brand, left hamburger
+What changed:
+- `frontend/index.html`: moved the `#menuToggle` button out of `.nav-actions` to be the **first child of `.navbar`**, so the mobile grid becomes ☰ (left) | brand (center) | actions (right) — the brand is now truly centered instead of sitting left-of-center.
+- `frontend/styles.css`: added the previously-missing icon-swap rules (`.menu-icon-close` hidden by default; `.menu-icon-open` hidden when `aria-expanded="true"`) — before this, **both** the hamburger and the X rendered stacked inside the button. At ≤900px the toggle is `justify-self: start` and gets a 44px tap target with a subtle gold hairline (`border-color: rgba(201,162,75,.35)`, compound `.nav-icon-btn.nav-menu-toggle` selector so it beats the 40px rule in the 600px block).
+Why: Owner feedback — the mobile navbar looked broken: two icons stacked in the button and an off-center brand.
+Verification: headless-Chrome computed-style probe at 320/375/600/768/900px — only the hamburger icon renders when closed (X hidden), toggle sits left, brand center within ~8px of viewport/2, zero horizontal overflow.
+
+## [2026-08-16 21:45]
+
+### [Category: UI] — Responsive + accessible navigation and overlay hardening for all viewports
+What changed:
+- **Mobile navigation (new)**: added a hamburger toggle (`.nav-menu-toggle`, `aria-expanded`/`aria-controls`) and a full-screen, brand-styled mobile menu (`.mobile-menu` — forest-deep ground, gold hairline links, 56px touch targets, close button). The inline nav links now collapse into the hamburger at `≤900px` (previously `≤768px`) — this fixes a real overflow bug in the 769–850px range where the three-column nav (links/brand/icons) exceeded the viewport and silently clipped the cart icon behind `overflow-x: hidden`. The two non-functional placeholder icon buttons (Search/Account) are hidden `≤600px` so the brand mark, hamburger, and cart never crowd on small phones.
+- **Overlay accessibility (UISKILL.md §9.2)**: collection modal, cart drawer, and mobile menu now trap Tab/Shift+Tab focus while open, restore focus to the trigger on close, and are `inert` + `visibility: hidden` when closed so their controls leave the tab order. Modal and drawer got `role="dialog"`/`aria-modal`/`aria-labelledby`; the cart drawer and modal body scroll-locks were unified into one `updateScrollLock()` helper that never un-locks one overlay while another is open.
+- **Keyboard & ARIA**: collection cards are now keyboard-operable (`role="button"`, `tabindex="0"`, Enter/Space opens the modal — the existing `:focus-visible` hover-lift rule already styled them). Added a visually-hidden `aria-live="polite"` region announcing cart count changes, and a skip-to-content link that reveals on first Tab.
+- **Navigation UX**: `scroll-padding-top: 96px` on `html` so anchored sections (Collections/Heritage/Bespoke/Contact) land below the fixed navbar instead of underneath it; Escape now closes the topmost overlay (menu → modal → cart); the featured strip is keyboard-scrollable via Left/Right arrows (smooth, `auto` under reduced motion).
+- **Responsive polish**: hero uses `100svh` (with `100vh` fallback) to avoid mobile URL-bar height jumps; cart quantity/remove buttons enlarged to 36×36px min at `≤768px`; cart drawer padding tightened to 20px at `≤600px`; nav icon buttons enlarged to 40px at `≤600px`.
+- `DESIGN.md`: responsive section updated (hamburger at 900px, search/account hidden ≤600px).
+Why: Owner request — the site was not adequately responsive and lacked mobile navigation and overlay accessibility; this brings navigation and interaction up to the UISKILL.md/RULES.md bars (touch targets, keyboard parity, focus management, no hover-only interactions, no viewport overflow) across ~320px to 1440px.
+Bug fixed (if applicable): 769–850px nav overflow clipped the cart icon; mobile viewports had no way to reach the Collections/Heritage/Bespoke/Contact sections; hidden modal/drawer controls remained keyboard-focusable; anchored sections scrolled underneath the fixed navbar.
+Verification: `node --check` on `script.js`; headless-Chrome render (JS executes, reveals fire, no console errors); iframe overflow probe shows `scrollWidth == clientWidth` (zero horizontal overflow) at 320/375/480/768/1024/1440.
+
+## [2026-08-16 21:19]
+
+### [Category: UI] — Real product photos as collection-card cover images
+What changed: Replaced the `placeholder.svg` cover image on all four "Curated Collections" cards in `frontend/index.html` with the real product photographs the owner added to `frontend/`: `necklace.jpeg` (Neck Pieces), `bracelets.jpeg` (Bracelets), `earrings.jpeg` (Earrings), `rings.jpeg` (Rings). Only the four `<img src>` attributes changed; no CSS or JS was touched — `.collection-card-img img` already crops with `object-fit: cover` on a 3/4 aspect ratio, and the existing capture-phase error listener still falls back to `placeholder.svg` for any image that fails to load.
+Why: Owner request — each product type now shows its actual photo as the card cover instead of the placeholder graphic.
+
 ## [2026-08-12 22:45]
 
 ### [Category: UI] — Replace hero Jharokha SVG with ornate gold mirror frame

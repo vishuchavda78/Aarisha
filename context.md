@@ -54,6 +54,10 @@ The-aarisha/
 │   ├── styles.css           # Design tokens, layout, motion, components, responsive rules
 │   ├── script.js            # Storefront behavior: API fetch, reveal, modal, cart, WhatsApp order, backdrop glow
 │   ├── Logo.png             # Brand logo (footer, favicon)
+│   ├── necklace.jpeg        # Collection-card cover — Neck Pieces
+│   ├── bracelets.jpeg       # Collection-card cover — Bracelets
+│   ├── earrings.jpeg        # Collection-card cover — Earrings
+│   ├── rings.jpeg           # Collection-card cover — Rings
 │   └── placeholder.svg      # Fallback for missing/broken product images
 ├── context.md               # This guide
 ├── DESIGN.md                # Frontend design system reference (v3 "Heritage Gold & Forest")
@@ -81,7 +85,7 @@ The-aarisha/
 
 ### Asset-status note
 
-The Git index previously tracked `Earrings/`, `Rings/`, and `Bracelets/` product-photo folders at the repo root, but they are **absent from the current working tree**. The storefront now renders catalogue products from the API, and `script.js` swaps any failed image to `placeholder.svg`; the Instagram grid is explicitly set to placeholders (`instaImages.fill('placeholder.svg')`). Restore the folders (or re-point product images in Supabase to hosted URLs) to show real photography.
+The Git index previously tracked `Earrings/`, `Rings/`, and `Bracelets/` product-photo folders at the repo root, but they are **absent from the current working tree**. The storefront now renders catalogue products from the API, and `script.js` swaps any failed image to `placeholder.svg`; the Instagram grid is explicitly set to placeholders (`instaImages.fill('placeholder.svg')`). Restore the folders (or re-point product images in Supabase to hosted URLs) to show real photography. Note: the four collection-card cover images in `frontend/` (`necklace.jpeg`/`bracelets.jpeg`/`earrings.jpeg`/`rings.jpeg`) are real photos and are not affected by this gap.
 
 ## Feature list
 
@@ -89,14 +93,14 @@ The Git index previously tracked `Earrings/`, `Rings/`, and `Bracelets/` product
 - **v3 "Heritage Gold & Forest" design (Stitch migration, 2026-08-11)**: deep forest green (`#1B3428` canvas, `#00180e` deepest) + antique gold (`#C9A24B`) + warm ivory plaques; Bodoni Moda + Manrope; full-page restyle of nav, hero (mirror frame + brand headline), step-well divider, category grid, footer, modal, and cart drawer.
 - **Fixed heritage backdrop**: one full-screen gold Rani ki Vav **monument line-art** layer behind every section at low rest opacity (0.12) with an edge vignette. The artwork is a highly detailed perspective view of the stepwell (processed from the owner's reference drawing `Gemini_Generated_Image_jgukn1jgukn1jguk.png` to a gold-on-transparent PNG `frontend/monument-lineart.png`) showing ornate columns, galleries, descending steps, and a surveyor figure.
 - **Cursor line-glow**: a drop-shadowed glow copy of the artwork is masked to the cursor via rAF-throttled `--glow-x/--glow-y` (~240px window) so the **lines themselves emit light** (not a radial light source); touch/keyboard devices get a 9s ambient pulse; `prefers-reduced-motion` renders a static raised motif instead.
-- Nav with three-part layout (links left, brand center, icon actions right), sticky blur + gold hairline after 80px scroll; cart bag icon in the nav carries the live count badge.
+- Nav with three-part layout (**brand left, links centre, icon actions right** — explicit `grid-column` placement), sticky blur + gold hairline after 80px scroll; cart icon in the nav carries the live count badge. Below 900px the links collapse into a full-screen hamburger menu (brand left, ☰ + 🛍 right) with focus management and Escape/link-click close; the placeholder Search/Account icon buttons hide below 600px so the brand, hamburger, and cart stay uncrowded. Nav links and the brand close any open overlay (modal/menu/cart) before scrolling, so they work from the product section too.
 - Hero: Ornate baroque gold mirror frame (`mirror-frame.png`), "Anti Tarnish Fine Jewellery" eyebrow, "The Aarisha" display headline, italic tagline, gold-outline "Explore Collections" CTA.
 - Scrolling "Step-Well" divider (three descending gold lines) as the section break.
-- Four collection cards (Neck Pieces, Bracelets, Earrings, Rings) as ivory plaques with an offset gold frame and hover lift, opening the full-screen product modal.
+- Four collection cards (Neck Pieces, Bracelets, Earrings, Rings) as ivory plaques with an offset gold frame and hover lift, opening the full-screen product modal. Each card's cover image is a real product photograph (`necklace.jpeg`/`bracelets.jpeg`/`earrings.jpeg`/`rings.jpeg`); `placeholder.svg` is only the fallback for broken images.
 - Catalogue loaded live from the API: featured strip (`GET /products`) and category modal (`GET /products/{category}`).
-- Product modal: name, INR price (en-IN formatting), image, Add to Bag button, Out-of-Stock disable, staggered entrance, Escape/back-button close.
-- Cart drawer: session-scoped (`sessionStorage`), quantity +/- controls, remove, live count badge, scrim overlay.
-- **Order on WhatsApp**: POSTs cart items to `/orders/whatsapp-link`, opens the generated `wa.me` draft, clears the cart on success. No payment/checkout exists.
+- Product modal: name, INR price (en-IN formatting), image, two buttons per card (**Add to Cart** + **Order on WhatsApp**), Out-of-Stock disable on both, staggered entrance, Escape/back-button close.
+- Cart drawer: session-scoped (`sessionStorage`), quantity +/- controls, remove, live count badge, scrim overlay. Adding to cart fires a brand-styled toast (`.toast`, `role="status"` + `aria-live`) that auto-dismisses after ~2.6s.
+- **Order on WhatsApp**: POSTs cart items to `/orders/whatsapp-link`, opens the generated `wa.me` draft, clears the cart on success. Product cards also have a per-product **Order on WhatsApp** button that POSTs just that item (quantity 1) without touching the cart. No payment/checkout exists.
 - Reveal-on-scroll animations (`.reveal`, `.reveal-left`, `.reveal-right`) via IntersectionObserver with sibling stagger.
 - About / brand-story section, "Why Aarisha" value props, Instagram placeholder grid, contact section (visible; form remains a non-functional placeholder).
 - Footer: three-column grid (brand + logo, links, contact with phone numbers), flare divider, social icons.
@@ -168,12 +172,13 @@ All storefront JS initializes inside a `DOMContentLoaded` listener in `frontend/
 
 - Broken-image fallback to `placeholder.svg`.
 - Sticky navbar styling after 80px of scroll.
+- Mobile navigation: the hamburger toggle (left of the centered brand, `☰` ⇄ `×` icon swap via `aria-expanded`) opens a full-screen menu; focus moves to it, Escape/backdrop/link-click closes it, and focus returns to the toggle. Overlays (menu/modal/cart) trap Tab focus while open and are `inert` + `visibility:hidden` when closed.
 - Heritage-backdrop line-glow: rAF-throttled `--glow-x/--glow-y` + `.glowing` on `.heritage-bg[data-glow]` (fine pointers), `.pulse` ambient fallback (touch/keyboard), reduced-motion gate.
 - `IntersectionObserver` reveal animations with sibling stagger (`index * 150ms`).
 - Featured strip fetched from `GET /products` (cards animate in with `80ms` stagger) with mouse drag-to-scroll.
 - Instagram grid rendered as placeholder tiles (observed for reveals).
-- Category modal populated from `GET /products/{category}`; empty categories show a "Coming Soon — Stay Tuned" message; Escape or back button closes; body scroll locks while open.
-- Cart: `sessionStorage`-backed, add/increase/decrease/remove, badge count, total, drawer + scrim open/close.
+- Category modal populated from `GET /products/{category}`; empty categories show a "Coming Soon — Stay Tuned" message; Escape or back button closes; body scroll locks while open; Tab focus is trapped and returned to the opening card on close. Collection cards are keyboard-operable (Enter/Space). The modal sits **below the fixed navbar** (`z-index` 950 vs 1000) so the nav stays visible while browsing (the navbar gains `.modal-open` glass styling while the modal is up); a sticky top bar (back button + compact category label) pins under the navbar while products scroll — the label fades in via `.has-scrolled` only after the large heading scrolls away, so the category name is never shown twice.
+- Cart: `sessionStorage`-backed, add/increase/decrease/remove, badge count, total, drawer + scrim open/close; drawer traps focus and restores it to the cart button on close; a visually-hidden `aria-live` region announces count changes; the featured strip scrolls with Left/Right arrow keys.
 - WhatsApp order: requires every cart item to carry a `serverProductId`; on success opens the draft and clears the cart.
 - Smooth scrolling for same-page anchor links.
 
@@ -183,10 +188,11 @@ Active operating manual: `UISKILL.md` (codename `Weave`). Design-system source o
 
 - **Component foundation**: hand-rolled vanilla CSS/JS — no React, Tailwind, or component library. Tokens in `frontend/styles.css` `:root` are the shared system (see `DESIGN.md`).
 - **v3 "Heritage Gold & Forest" redesign (applied 2026-08-11, migrated from the Stitch export)**: palette is **deep forest green + antique gold** — `--forest` `#1b3428` page ground, `--forest-deep` `#00180e` deepest, `--gold` `#c9a24b` accent, `--off-white` `#ece1ce` ivory plaques, `--white` `#cce9d8` text. Typography moved to **Bodoni Moda + Manrope**. Layout: fixed top nav (links / brand / icons), full-height hero with an ornate gold mirror frame, step-well divider, 4-up category grid with offset gold frames, 3-column footer. A single fixed `.heritage-bg` replaces the v2 per-section motif layers.
+- **Responsive + a11y hardening (2026-08-16)**: hamburger menu at ≤900px (fixes the 769–850px nav overflow), focus traps + focus return for modal/drawer/menu, `inert` closed overlays, cart `aria-live`, keyboard-operable collection cards, skip link, `scroll-padding-top` for anchored sections, `100svh` hero, 36px+ touch targets, unified scroll lock. Zero horizontal overflow verified at 320/375/480/768/1024/1440px.
 - **Signature interaction — cursor line-glow**: the gold monument line-art is rendered twice — a dim base copy (rest opacity 0.12) and a drop-shadowed glow copy masked to a ~240px window around the pointer (`--glow-x`/`--glow-y` updated rAF-throttled; opacity + mask-position only, compositor-friendly). Because the glow copy carries `drop-shadow`, **the lines themselves glow** rather than a radial light source. Touch/keyboard devices get a 9s ambient pulse (`.pulse`) instead; `prefers-reduced-motion: reduce` disables both and renders the motif at a static raised opacity.
 - **Motion budget classification**: marketing/brand site — motion part of the brand experience, restrained. Motion inventory: scroll reveals (fade + translate, one-shot, sibling stagger 150ms), hero entrance stagger, category-card hover lift (`-8px`) + image scale (`1.05`) + gold frame reveal, product-card hover lift, button fill-gold + glow (`box-shadow: 0 0 16px rgba(235,193,102,.35)`) at `:hover`/`:focus-visible`, modal/drawer slide+fade, staggered card entrances (`80–150ms`), backdrop ambient pulse (9s).
 - **Motion tokens in use**: `--transition-smooth` (default); `--transition-glow: cubic-bezier(0.4, 0, 0.2, 1)` (glow fade, 0.25s); `--transition-bounce` defined but unreferenced. Durations remain component-specific (0.25–0.8s) rather than a shared scale — candidate improvement per UISKILL.md §5.4.
-- **Known deviations to track** (UISKILL.md §2): the backdrop ambient pulse is infinite and unpausable (decorative, disabled under reduced motion); cart drawer and modal manage body scroll lock but no focus trap/return; global `:focus-visible` gold outline exists but no per-component focus styles beyond button glows; `aria-live` regions absent; no skeletons (content pops in). The contact form is visible but a non-functional placeholder. Price text on ivory plaques renders `--gold-dark`/`--ink` instead of gold (gold-on-ivory ≈ 2.4:1, below WCAG AA) — deliberate deviation from the raw Stitch palette.
+- **Known deviations to track** (UISKILL.md §2): the backdrop ambient pulse is infinite and unpausable (decorative, disabled under reduced motion); no skeletons (content pops in); no per-component focus styles beyond the global `:focus-visible` outline and button glows. The contact form is visible but a non-functional placeholder. Price text on ivory plaques renders `--gold-dark`/`--ink` instead of gold (gold-on-ivory ≈ 2.4:1, below WCAG AA) — deliberate deviation from the raw Stitch palette. (Focus trap/return, `inert` closed overlays, cart `aria-live`, keyboard-operable collection cards, and the unified scroll lock were added 2026-08-16 — see the feature list.)
 
 ## Current functional boundaries
 

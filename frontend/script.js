@@ -15,6 +15,45 @@ document.addEventListener('DOMContentLoaded', () => {
     navbar.classList.toggle('scrolled', window.scrollY > 80);
   });
 
+  // ── Scroll lock — keep the page from scrolling under any open overlay ──
+  function updateScrollLock() {
+    const anyOpen =
+      document.getElementById('mobileMenu').classList.contains('open') ||
+      document.getElementById('collectionModal').classList.contains('open') ||
+      document.getElementById('cartDrawer').classList.contains('open');
+    document.body.style.overflow = anyOpen ? 'hidden' : '';
+  }
+
+  // ── Focus trap — cycle Tab/Shift+Tab inside an open overlay (UISKILL.md §9.2) ──
+  function trapFocus(container, event) {
+    if (event.key !== 'Tab') return;
+    const focusables = container.querySelectorAll('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
+
+  // ── Mobile navigation menu (hamburger → full-screen overlay) ──
+  const menuToggle = document.getElementById('menuToggle');
+  const mobileMenu = document.getElementById('mobileMenu');
+  const menuClose = document.getElementById('menuClose');
+
+  function setMenuOpen(open) {
+    mobileMenu.classList.toggle('open', open);
+    mobileMenu.setAttribute('aria-hidden', String(!open));
+    mobileMenu.inert = !open;
+    menuToggle.setAttribute('aria-expanded', String(open));
+    updateScrollLock();
+    if (open) menuClose.focus();
+    else menuToggle.focus();
+  }
+
+  menuToggle.addEventListener('click', () => setMenuOpen(!mobileMenu.classList.contains('open')));
+  menuClose.addEventListener('click', () => setMenuOpen(false));
+  mobileMenu.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenuOpen(false)));
+
   // ═══════════════════════════════════════════
   // RANI KI VAV HERITAGE BACKDROP (DESIGN.md §Motif)
   // One fixed full-screen monument line-art layer with a cursor-reactive line glow
@@ -102,13 +141,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('div');
       card.className = 'product-card reveal';
       card.style.animationDelay = `${index * 80}ms`;
+      const outOfStock = product.in_stock === false;
       card.innerHTML = `
         <div class="product-card-img"><img src="${product.image_url}" alt="${product.name}"></div>
         <div class="product-card-info">
           <h4>${product.name}</h4>
           <span class="price">₹ ${Number(product.price).toLocaleString('en-IN')}</span>
+        </div>
+        <div class="card-actions">
+          <button type="button" class="add-to-cart" ${outOfStock ? 'disabled' : ''}>${outOfStock ? 'Out of Stock' : 'Add to Cart'}</button>
+          <button type="button" class="order-whatsapp" ${outOfStock ? 'disabled' : ''}>Order on WhatsApp</button>
         </div>`;
       featuredScroll.appendChild(card);
+      card.querySelector('.add-to-cart').addEventListener('click', () => addToCart(product));
+      card.querySelector('.order-whatsapp').addEventListener('click', () => orderOnWhatsApp(product));
       revealObserver.observe(card);
     }))
       .catch(() => {});
@@ -127,6 +173,14 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const x = e.pageX - featuredScroll.offsetLeft;
       featuredScroll.scrollLeft = scrollLeft - (x - startX) * 1.5;
+    });
+
+    // Keyboard: arrow keys scroll the horizontal strip (RULES.md §4.2 — no
+    // interaction may depend on mouse-only gestures)
+    featuredScroll.addEventListener('keydown', event => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      featuredScroll.scrollBy({ left: event.key === 'ArrowRight' ? 280 : -280, behavior: reduceMotion ? 'auto' : 'smooth' });
     });
   }
 
@@ -155,7 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const collectionModal = document.getElementById('collectionModal');
   const modalBackBtn = document.getElementById('modalBackBtn');
   const modalTitle = document.getElementById('modalCategoryTitle');
+  const modalTopbarTitle = document.getElementById('modalTopbarTitle');
   const modalGrid = document.getElementById('modalProductGrid');
+  // Progressive disclosure: the compact top-bar label takes over once the large
+  // heading has scrolled under the pinned top bar (see .modal-topbar-title).
+  let modalTitleThreshold = 200;
+  collectionModal.addEventListener('scroll', () => {
+    collectionModal.classList.toggle('has-scrolled', collectionModal.scrollTop >= modalTitleThreshold);
+  }, { passive: true });
   const CART_STORAGE_KEY = 'aarisha-cart-v1';
   const apiCategories = { Earrings: 'earrings', Rings: 'rings', Bracelets: 'bracelets', NeckPieces: 'necklaces' };
   let cart = JSON.parse(sessionStorage.getItem(CART_STORAGE_KEY) || '[]');
@@ -163,10 +224,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const money = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value));
   const priceNumber = value => typeof value === 'number' ? value : Number(String(value).replace(/[^0-9.]/g, '')) || 0;
   const productKey = product => String(product.id || product.src || product.name);
+  let lastFocusedCart = null;
+  let lastFocusedModal = null;
 
   function saveCart() {
     sessionStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     renderCart();
+  }
+
+  let toastTimer = null;
+  function showToast(message) {
+    const toast = document.getElementById('cartToast');
+    const messageEl = document.getElementById('cartToastMsg');
+    if (!toast || !messageEl) return;
+    messageEl.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
   }
 
   function addToCart(product) {
@@ -174,21 +248,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const existing = cart.find(item => item.id === normalized.id);
     existing ? existing.quantity += 1 : cart.push({ ...normalized, quantity: 1 });
     saveCart();
+    showToast(`${normalized.name} added to cart`);
+  }
+
+  // Order a single product on WhatsApp (independent of the cart)
+  async function orderOnWhatsApp(product) {
+    const productId = product.serverProductId || product.id;
+    if (!productId) return alert('Connect the catalogue API before ordering on WhatsApp.');
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders/whatsapp-link`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: [{ product_id: productId, quantity: 1 }] }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Unable to create WhatsApp order link.');
+      window.open(data.url, '_blank', 'noopener');
+    } catch (error) { alert(error.message); }
   }
 
   function renderCart() {
     const items = document.getElementById('cartItems');
     const count = document.getElementById('cartCount');
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    count.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+    count.textContent = itemCount;
+    const cartLive = document.getElementById('cartLive');
+    if (cartLive) cartLive.textContent = `${itemCount} ${itemCount === 1 ? 'item' : 'items'} in your cart`;
     document.getElementById('cartTotal').textContent = money(total);
-    items.innerHTML = cart.length ? cart.map(item => `<article class="cart-item"><img src="${item.src}" alt="${item.name}"><div><h3>${item.name}</h3><p>${money(item.price)}</p><div class="cart-quantity"><button type="button" data-cart-action="decrease" data-id="${item.id}" aria-label="Decrease quantity">−</button><span>${item.quantity}</span><button type="button" data-cart-action="increase" data-id="${item.id}" aria-label="Increase quantity">+</button></div></div><button class="cart-remove" type="button" data-cart-action="remove" data-id="${item.id}" aria-label="Remove ${item.name}">&times;</button></article>`).join('') : '<p class="cart-empty">Your bag is waiting for a little sparkle.</p>';
+    items.innerHTML = cart.length ? cart.map(item => `<article class="cart-item"><img src="${item.src}" alt="${item.name}"><div><h3>${item.name}</h3><p>${money(item.price)}</p><div class="cart-quantity"><button type="button" data-cart-action="decrease" data-id="${item.id}" aria-label="Decrease quantity">−</button><span>${item.quantity}</span><button type="button" data-cart-action="increase" data-id="${item.id}" aria-label="Increase quantity">+</button></div></div><button class="cart-remove" type="button" data-cart-action="remove" data-id="${item.id}" aria-label="Remove ${item.name}">&times;</button></article>`).join('') : '<p class="cart-empty">Your cart is waiting for a little sparkle.</p>';
   }
 
   function setCartOpen(open) {
-    document.getElementById('cartDrawer').classList.toggle('open', open);
+    const drawer = document.getElementById('cartDrawer');
+    drawer.classList.toggle('open', open);
     document.getElementById('cartScrim').classList.toggle('open', open);
-    document.getElementById('cartDrawer').setAttribute('aria-hidden', String(!open));
+    drawer.setAttribute('aria-hidden', String(!open));
+    drawer.inert = !open;
+    updateScrollLock();
+    if (open) {
+      lastFocusedCart = document.activeElement;
+      document.getElementById('cartClose').focus();
+    } else if (lastFocusedCart) {
+      lastFocusedCart.focus();
+    }
   }
 
   document.getElementById('cartToggle').addEventListener('click', () => setCartOpen(true));
@@ -222,9 +321,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const displayNames = { Earrings: 'Earrings', Rings: 'Rings', Bracelets: 'Bracelets', NeckPieces: 'Neck Pieces' };
 
   async function openCollectionModal(category) {
+    lastFocusedModal = document.activeElement;
     let products = [];
     const title = displayNames[category] || category;
     modalTitle.textContent = title;
+    if (modalTopbarTitle) modalTopbarTitle.textContent = title;
     modalGrid.innerHTML = '';
 
     try {
@@ -246,42 +347,78 @@ document.addEventListener('DOMContentLoaded', () => {
             <h4>${p.name}</h4>
             <span class="price">${p.price}</span>
           </div>`;
+        const actions = document.createElement('div');
+        actions.className = 'card-actions';
+
         const addButton = document.createElement('button');
         addButton.className = 'add-to-cart';
         addButton.type = 'button';
-        addButton.textContent = p.in_stock === false ? 'Out of Stock' : 'Add to Bag';
+        addButton.textContent = p.in_stock === false ? 'Out of Stock' : 'Add to Cart';
         addButton.disabled = p.in_stock === false;
         addButton.addEventListener('click', () => addToCart(p));
-        card.appendChild(addButton);
+        actions.appendChild(addButton);
+
+        const whatsappButton = document.createElement('button');
+        whatsappButton.className = 'order-whatsapp';
+        whatsappButton.type = 'button';
+        whatsappButton.textContent = 'Order on WhatsApp';
+        whatsappButton.disabled = p.in_stock === false;
+        whatsappButton.addEventListener('click', () => orderOnWhatsApp(p));
+        actions.appendChild(whatsappButton);
+
+        card.appendChild(actions);
         modalGrid.appendChild(card);
 
       });
     }
 
     collectionModal.classList.add('open');
-    document.body.style.overflow = 'hidden';
+    collectionModal.inert = false;
+    updateScrollLock();
     collectionModal.scrollTop = 0;
+    collectionModal.classList.remove('has-scrolled');
+    // offsetTop is transform-independent, so it stays stable while the modal
+    // animates in; when the big heading reaches the top, the label takes over.
+    modalTitleThreshold = Math.max(60, modalTitle.offsetTop);
+    navbar.classList.add('modal-open');
+    modalBackBtn.focus();
   }
 
   function closeCollectionModal() {
     collectionModal.classList.remove('open');
-    document.body.style.overflow = '';
+    collectionModal.inert = true;
+    navbar.classList.remove('modal-open');
+    updateScrollLock();
+    if (lastFocusedModal) lastFocusedModal.focus();
   }
 
-  // Attach click to collection cards
+  // Attach click + keyboard activation to collection cards (Enter/Space)
   document.querySelectorAll('.collection-card[data-category]').forEach(card => {
     card.addEventListener('click', () => {
       const cat = card.getAttribute('data-category');
       openCollectionModal(cat);
     });
+    card.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openCollectionModal(card.getAttribute('data-category'));
+      }
+    });
   });
 
   modalBackBtn.addEventListener('click', closeCollectionModal);
 
-  // Close on Escape key
+  // Escape closes the topmost overlay; Tab is trapped inside open overlays
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && collectionModal.classList.contains('open')) {
-      closeCollectionModal();
+    if (e.key === 'Escape') {
+      if (mobileMenu.classList.contains('open')) setMenuOpen(false);
+      else if (collectionModal.classList.contains('open')) closeCollectionModal();
+      else if (document.getElementById('cartDrawer').classList.contains('open')) setCartOpen(false);
+      return;
+    }
+    if (e.key === 'Tab') {
+      if (collectionModal.classList.contains('open')) trapFocus(collectionModal, e);
+      else if (document.getElementById('cartDrawer').classList.contains('open')) trapFocus(document.getElementById('cartDrawer'), e);
     }
   });
 
@@ -289,6 +426,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
       e.preventDefault();
+      // Close whatever overlay is up first, so the navigation actually happens
+      // visibly — the product modal, mobile menu, and cart drawer all lock the
+      // page scroll, which would otherwise swallow the jump.
+      if (mobileMenu.classList.contains('open')) setMenuOpen(false);
+      if (collectionModal.classList.contains('open')) closeCollectionModal();
+      if (document.getElementById('cartDrawer').classList.contains('open')) setCartOpen(false);
       const target = document.querySelector(this.getAttribute('href'));
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
