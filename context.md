@@ -93,22 +93,22 @@ The Git index previously tracked `Earrings/`, `Rings/`, and `Bracelets/` product
 - **v3 "Heritage Gold & Forest" design (Stitch migration, 2026-08-11)**: deep forest green (`#1B3428` canvas, `#00180e` deepest) + antique gold (`#C9A24B`) + warm ivory plaques; Bodoni Moda + Manrope; full-page restyle of nav, hero (mirror frame + brand headline), step-well divider, category grid, footer, modal, and cart drawer.
 - **Fixed heritage backdrop**: one full-screen gold Rani ki Vav **monument line-art** layer behind every section at low rest opacity (0.12) with an edge vignette. The artwork is a highly detailed perspective view of the stepwell (processed from the owner's reference drawing `Gemini_Generated_Image_jgukn1jgukn1jguk.png` to a gold-on-transparent PNG `frontend/monument-lineart.png`) showing ornate columns, galleries, descending steps, and a surveyor figure.
 - **Cursor line-glow**: a drop-shadowed glow copy of the artwork is masked to the cursor via rAF-throttled `--glow-x/--glow-y` (~240px window) so the **lines themselves emit light** (not a radial light source); touch/keyboard devices get a 9s ambient pulse; `prefers-reduced-motion` renders a static raised motif instead.
-- Nav with three-part layout (**brand left, links centre, icon actions right** — explicit `grid-column` placement), sticky blur + gold hairline after 80px scroll; cart icon in the nav carries the live count badge. Below 900px the links collapse into a full-screen hamburger menu (brand left, ☰ + 🛍 right) with focus management and Escape/link-click close; the placeholder Search/Account icon buttons hide below 600px so the brand, hamburger, and cart stay uncrowded. Nav links and the brand close any open overlay (modal/menu/cart) before scrolling, so they work from the product section too.
+- Nav with three-part layout (**brand left, links centre, icon actions right** — explicit `grid-column` placement), sticky blur + gold hairline after 80px scroll; cart icon in the nav carries the live count badge. Nav links: Collections / Heritage / Testimonials / Contact. Below 900px the links collapse into a full-screen hamburger menu (brand left, ☰ + 🛍 right) with focus management and Escape/link-click close; the placeholder Search/Account icon buttons hide below 600px so the brand, hamburger, and cart stay uncrowded. Nav links and the brand close any open overlay (modal/menu/cart) before scrolling, so they work from the product section too.
 - Hero: Ornate baroque gold mirror frame (`mirror-frame.png`), "Anti Tarnish Fine Jewellery" eyebrow, "The Aarisha" display headline, italic tagline, gold-outline "Explore Collections" CTA.
 - Scrolling "Step-Well" divider (three descending gold lines) as the section break.
 - Four collection cards (Neck Pieces, Bracelets, Earrings, Rings) as ivory plaques with an offset gold frame and hover lift, opening the full-screen product modal. Each card's cover image is a real product photograph (`necklace.jpeg`/`bracelets.jpeg`/`earrings.jpeg`/`rings.jpeg`); `placeholder.svg` is only the fallback for broken images.
-- Catalogue loaded live from the API: featured strip (`GET /products`) and category modal (`GET /products/{category}`).
+- Catalogue loaded live from the API: "Reflecting you" featured strip (`GET /products`, cards with Add to Cart + Order on WhatsApp) and category modal (`GET /products/{category}`).
 - Product modal: name, INR price (en-IN formatting), image, two buttons per card (**Add to Cart** + **Order on WhatsApp**), Out-of-Stock disable on both, staggered entrance, Escape/back-button close.
 - Cart drawer: session-scoped (`sessionStorage`), quantity +/- controls, remove, live count badge, scrim overlay. Adding to cart fires a brand-styled toast (`.toast`, `role="status"` + `aria-live`) that auto-dismisses after ~2.6s.
 - **Order on WhatsApp**: POSTs cart items to `/orders/whatsapp-link`, opens the generated `wa.me` draft, clears the cart on success. Product cards also have a per-product **Order on WhatsApp** button that POSTs just that item (quantity 1) without touching the cart. No payment/checkout exists.
 - Reveal-on-scroll animations (`.reveal`, `.reveal-left`, `.reveal-right`) via IntersectionObserver with sibling stagger.
-- About / brand-story section, "Why Aarisha" value props, Instagram placeholder grid, contact section (visible; form remains a non-functional placeholder).
+- About / brand-story section (signature line + three "mirror"-themed story paragraphs), Testimonials section (five 5-star reviews from Indian/Gujarati customers), Instagram placeholder grid, contact section (visible; form remains a non-functional placeholder).
 - Footer: three-column grid (brand + logo, links, contact with phone numbers), flare divider, social icons.
 - Supabase schema with RLS (`products` readable publicly; service-role key used server-side).
 
 ### In-progress / known gaps
 - Contact form is visible but non-functional (prevents default submit; no backend). Social links are `href="#"` placeholders.
-- Instagram grid renders placeholder tiles only (no live feed).
+- Instagram grid renders real posts when `INSTAGRAM_ACCESS_TOKEN` is configured (`GET /instagram/posts`, cached 10 min), otherwise placeholder tiles. All Instagram references link to `https://www.instagram.com/the.aarisha_/`.
 - Product photography folders missing from the working tree (see Asset-status note).
 
 ### Planned / not built
@@ -130,7 +130,7 @@ FastAPI app  ──►  Supabase REST (/rest/v1/products)
 
 - **API base detection** (in `script.js`): if `location.hostname` is `127.0.0.1` or `localhost`, use `http://127.0.0.1:8000`; otherwise use `${location.origin}/api`.
 - **Static serving on Vercel**: `vercel.json` rewrites `/api/(.*)` to the function and `/(.*)` to `/frontend/$1`, so all non-API root paths (including `/`, `/index.html`, `/styles.css`, `/script.js`, `/Logo.png`, `/placeholder.svg`) resolve into `frontend/`. `api/index.py` keeps FastAPI fallback routes that serve the same files from `frontend/`.
-- **Secrets** (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BRAND_WHATSAPP_NUMBER`) live only in backend env vars / `.env` — never in browser code.
+- **Secrets** (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BRAND_WHATSAPP_NUMBER`, `INSTAGRAM_ACCESS_TOKEN`) live only in backend env vars / `.env` — never in browser code.
 - **CORS**: allowlist from `ALLOWED_ORIGINS` (default `http://127.0.0.1:5500,http://localhost:5500`).
 - **WhatsApp flow**: the order phone number never appears in page source; the browser only receives a `wa.me` deep link from the API. (Support phone numbers shown in the footer come from the Stitch design export and are not the WhatsApp ordering number.)
 
@@ -139,6 +139,7 @@ FastAPI app  ──►  Supabase REST (/rest/v1/products)
 - `GET /products` — all products, newest first
 - `GET /products/{category}` — category = `rings | necklaces | bracelets | earrings`
 - `POST /orders/whatsapp-link` — validates items against live stock/prices, returns a WhatsApp draft URL
+- `GET /instagram/posts` — recent Instagram media (Basic Display API, token-gated, 10-min in-memory cache); empty list when unconfigured or on upstream error
 
 ## Key conventions & patterns
 

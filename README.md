@@ -33,4 +33,4 @@ Product data is managed directly in the Supabase `products` table (Supabase dash
 
 ## Security
 
-`SUPABASE_SERVICE_ROLE_KEY` and `BRAND_WHATSAPP_NUMBER` belong only in backend environment variables. Do not expose them in browser code, commits, or static-host configuration. The browser receives a WhatsApp deep link only after asking the API to generate one; the phone number is not present in the page source, though it remains visible in the eventual `wa.me` destination by design.
+`SUPABASE_SERVICE_ROLE_KEY`, `BRAND_WHATSAPP_NUMBER`, and `INSTAGRAM_ACCESS_TOKEN` (optional — powers the Instagram feed; leave unset to show placeholder tiles) belong only in backend environment variables. Do not expose them in browser code, commits, or static-host configuration. The browser receives a WhatsApp deep link only after asking the API to generate one; the phone number is not present in the page source, though it remains visible in the eventual `wa.me` destination by design.

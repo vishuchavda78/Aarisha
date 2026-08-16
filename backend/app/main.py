@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from enum import Enum
+import time
 
 import httpx
 from fastapi import FastAPI, HTTPException
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_service_role_key: str
     brand_whatsapp_number: str
+    instagram_access_token: str | None = None
     allowed_origins: str = "http://127.0.0.1:5500,http://localhost:5500"
 
 
@@ -92,3 +94,45 @@ async def whatsapp_link(order: WhatsAppOrder):
     from urllib.parse import quote
     message = "Hi Aarisha! I'd like to order:\n" + "\n".join(lines) + f"\nTotal: INR {total:,.2f}"
     return {"url": f"https://wa.me/{settings.brand_whatsapp_number}?text={quote(message)}"}
+
+
+# Instagram feed — cached 10 minutes (Graph API rate limit is 200 calls/hour).
+# The token lives server-side only; with no token (or an upstream failure) the
+# route returns an empty list so the storefront falls back to placeholder tiles.
+_instagram_cache: dict = {"ts": 0.0, "posts": []}
+INSTAGRAM_FEED_TTL = 600
+
+
+@app.get("/instagram/posts")
+async def instagram_posts():
+    now = time.monotonic()
+    if now - _instagram_cache["ts"] < INSTAGRAM_FEED_TTL:
+        return _instagram_cache["posts"]
+
+    posts: list[dict] = []
+    token = settings.instagram_access_token
+    if token:
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                response = await client.get(
+                    "https://graph.instagram.com/me/media",
+                    params={
+                        "fields": "id,caption,media_type,media_url,thumbnail_url,permalink",
+                        "limit": 6,
+                        "access_token": token,
+                    },
+                )
+            if response.is_success:
+                for media in response.json().get("data", [])[:5]:
+                    caption = (media.get("caption") or "").strip()
+                    posts.append({
+                        "id": media.get("id"),
+                        "alt": caption[:120] or "Aarisha on Instagram",
+                        "image": media.get("media_url") if media.get("media_type") == "IMAGE" else (media.get("thumbnail_url") or media.get("media_url")),
+                        "permalink": media.get("permalink"),
+                    })
+        except Exception:
+            posts = []
+
+    _instagram_cache.update({"ts": now, "posts": posts})
+    return posts

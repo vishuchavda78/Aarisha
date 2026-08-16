@@ -184,25 +184,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── Generate Instagram Placeholders ──
+  // ── Instagram grid — real posts via the API, placeholder fallback ──
   const instaGrid = document.getElementById('instaGrid');
-  const instaImages = [
-    'Earrings/WhatsApp Image 2026-04-18 at 3.00.49 PM.jpeg',
-    'Bracelets/WhatsApp Image 2026-04-18 at 3.00.24 PM (1).jpeg',
-    'Rings/WhatsApp Image 2026-04-18 at 3.01.10 PM (2).jpeg',
-    'Earrings/WhatsApp Image 2026-04-18 at 3.00.50 PM (1).jpeg',
-    'Bracelets/WhatsApp Image 2026-04-18 at 3.00.25 PM (1).jpeg',
-  ];
-  instaImages.fill('placeholder.svg');
 
-  if (instaGrid) {
-    instaImages.forEach(src => {
+  function renderInstaPlaceholders() {
+    ['placeholder.svg', 'placeholder.svg', 'placeholder.svg', 'placeholder.svg', 'placeholder.svg'].forEach(src => {
       const div = document.createElement('div');
       div.className = 'insta-placeholder reveal';
       div.innerHTML = `<img src="${src}" alt="Instagram" style="width:100%;height:100%;object-fit:cover;">`;
       instaGrid.appendChild(div);
     });
     instaGrid.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  }
+
+  if (instaGrid) {
+    fetch(`${API_BASE_URL}/instagram/posts`)
+      .then(response => response.ok ? response.json() : [])
+      .then(posts => {
+        if (!posts.length) return renderInstaPlaceholders();
+        posts.forEach(post => {
+          const link = document.createElement('a');
+          link.className = 'insta-placeholder reveal';
+          link.href = post.permalink || 'https://www.instagram.com/the.aarisha_/';
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.setAttribute('aria-label', post.alt || 'Aarisha on Instagram');
+          const img = document.createElement('img');
+          img.src = post.image || 'placeholder.svg';
+          img.alt = post.alt || 'Aarisha on Instagram';
+          img.loading = 'lazy';
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'cover';
+          link.appendChild(img);
+          instaGrid.appendChild(link);
+          revealObserver.observe(link);
+        });
+      })
+      .catch(() => renderInstaPlaceholders());
   }
 
   // ── Collection Detail Modal ──

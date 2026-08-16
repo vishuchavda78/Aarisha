@@ -5,6 +5,56 @@
 > operating document (RULES.md, UISKILL.md) writes into this single shared file under
 > category-tagged subsections.
 
+## [2026-08-17 00:45]
+
+### [Category: Dev] — Instagram everywhere: hyperlinks + real posts via the Basic Display API
+What changed:
+- **Hyperlinks**: all five Instagram references in `frontend/index.html` now point to `https://www.instagram.com/the.aarisha_/` with `target="_blank" rel="noopener"` — the section-heading handle (new `.insta-handle` with hover underline), the "Visit our Instagram →" button, the contact-details handle (new `.contact-detail-link`), the footer handle link, and the footer Instagram social icon.
+- **Backend** (`backend/app/main.py`): new `GET /instagram/posts` — reads an optional `INSTAGRAM_ACCESS_TOKEN` setting, fetches the account's recent media from the Instagram **Basic Display API** (`graph.instagram.com/me/media`) with httpx, maps to `{id, alt, image, permalink}` (thumbnail for videos/carousels, caption→alt, max 5), and caches in-memory for 10 minutes (Graph API rate limit is 200/hr). Missing token or upstream error → empty list, never a crash. `api/index.py` needs no change — the route is mounted automatically under `/api`.
+- **Frontend** (`frontend/script.js`): the Instagram grid fetches `/instagram/posts` and renders each post as an `<a href=permalink target=_blank rel=noopener>` image tile (lazy-loaded, caption as alt); on empty/failed responses it falls back to the five placeholder tiles. No token configured → placeholders, so the site keeps working.
+- `.env.example` + `README.md`: documented `INSTAGRAM_ACCESS_TOKEN` (server-side only).
+Why: Owner request — link Instagram everywhere and show a few real posts in the Instagram section (profile: instagram.com/the.aarisha_).
+Verification: `node --check` + `py_compile` pass; headless-Chrome probe — all five links resolve to the profile, grid renders permalink-anchored tiles when the API returns posts, and falls back to 5 placeholders on an empty response.
+Owner action still required: create a Meta developer app + long-lived Basic Display token and set `INSTAGRAM_ACCESS_TOKEN` in `backend/.env` (local) and Vercel env vars. Until then the section shows placeholders.
+
+## [2026-08-17 00:30]
+
+### [Category: UI] — Replace "Why Aarisha" with a Testimonials section (5 reviews)
+What changed:
+- `frontend/index.html`: the value-prop section (`id="why"`) became **Testimonials** (`id="testimonials"`): heading "Testimonials" + five `<figure>` reviews (gold ★★★★★ with `role="img"` rating labels, italic serif quotes, customer name + city). The two nav links formerly labelled "Bespoke" (desktop links + mobile menu) now read "Testimonials" and point at `#testimonials`. Reviews: Kinjal Patel (Ahmedabad), Riddhi Shah (Surat), Meera Desai (Vadodara), Hetal Joshi (Rajkot), Ishita Trivedi (Mumbai) — approved by the owner.
+- `frontend/styles.css`: `.why-*` rules replaced by `.testimonials-*` — a centered `flex-wrap` grid (3 per row desktop, 2 tablet, 1 phone) so all five reviews stay visible; star, quote, and attribution styling matching the heritage look. Section class renamed `.why-section` → `.testimonials-section` across base + 1200/768/600 media queries.
+Why: Owner request — replace the Why Aarisha value props with customer testimonials, five visible, from Indian/Gujarati customers.
+Verification: headless-Chrome probe at 375/768/1024/1440px — 5 reviews render (rows 1×5 / 2+2+1 / 2+2+1 / 3+2), heading + nav label "Testimonials", zero overflow. No leftover `why-*`/Bespoke references; CSS braces balanced.
+
+## [2026-08-17 00:15]
+
+### [Category: UI] — Move "The Story of Aarisha" to the true viewport centre
+What changed: `frontend/index.html` — the heading moved out of `.about-right` (inside the two-column grid) to a full-width `.about-story-title` element above the grid, between the ornamental divider and the quote/story columns. `frontend/styles.css` — the `.about-right h2` rule became `.about-story-title` (same Bodoni styling, `text-align: center`, `margin: 10px 0 44px`). The title now sits at the page's true centre on every viewport instead of the centre of the right text column (~55% of the page).
+Why: Owner feedback — the title was centred within the text column, not the viewport.
+Verification: headless-Chrome probe at 375/768/1024/1440px — heading outside the grid, centre within ~1px of the content-viewport centre (the measured 7px delta equals half the scrollbar width), zero overflow.
+
+## [2026-08-17 00:05]
+
+### [Category: UI] — Centre the "The Story of Aarisha" heading
+What changed: `frontend/styles.css` — added `text-align: center` to `.about-right h2` so the story heading is centred on desktop (it was left-aligned inside the right column; mobile already centred it via the ≤768 rule). Body paragraphs stay left-aligned for readability.
+Why: Owner feedback — the story title looked off-centre on desktop.
+
+## [2026-08-16 23:55]
+
+### [Category: UI] — Rewrite the "Story of Aarisha" section copy
+What changed: `frontend/index.html` — replaced the old quote + single-paragraph brand story in the about section with the owner's new copy: the left column now carries the signature line "Aarisha ~ reflecting beauty, inside & out.", and the right column holds three new story paragraphs (Gujarati "mirror" meaning; mirror-inspired jewellery that reveals rather than overpowers; celebration of quiet, detail-level beauty). `frontend/styles.css` — added `.about-right p + p { margin-top: 18px }` so the stacked paragraphs breathe (the reset removes paragraph margins).
+Why: Owner request — new brand-story copy for the about section.
+
+## [2026-08-16 23:45]
+
+### [Category: UI] — Rename "Handpicked for You" section heading to "Aarisha on You"
+What changed: `frontend/index.html` — the featured-strip section heading (`#featured`) now reads "Aarisha on You" instead of "Handpicked for You". Also updated the matching section-label comment in `frontend/styles.css`. No other markup, styles, or behavior changed.
+Why: Owner request — new brand copy for the featured section.
+
+### [Category: UI] — Rename "Aarisha on You" section heading to "Reflecting you"
+What changed: `frontend/index.html` — the featured-strip section heading (`#featured`) now reads "Reflecting you" instead of "Aarisha on You". Also updated the matching section-label comment in `frontend/styles.css`. No other markup, styles, or behavior changed.
+Why: Owner request — refined brand copy for the featured section.
+
 ## [2026-08-16 23:30]
 
 ### [Category: UI] — Add-to-cart toast, bag→cart rename, two buttons on every product card

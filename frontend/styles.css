@@ -616,6 +616,15 @@ main,
   margin-bottom: 64px;
 }
 
+.insta-handle {
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+
+.insta-handle:hover {
+  border-bottom-color: var(--gold);
+}
+
 /* ── Collections Grid ── */
 .collections-section {
   padding: 10px 80px 110px;
@@ -698,7 +707,7 @@ main,
   text-align: center;
 }
 
-/* ── Featured / Handpicked ── */
+/* ── Featured / Reflecting you ── */
 .featured-section {
   padding: 10px 0 110px;
 }
@@ -805,13 +814,16 @@ main,
   line-height: 1.6;
 }
 
-.about-right h2 {
+/* Full-width centred heading — sits at the true viewport centre, above the
+   quote + story two-column grid (not centred within the text column). */
+.about-story-title {
   font-family: var(--font-heading);
   font-size: clamp(30px, 4vw, 44px);
   font-weight: 500;
   color: var(--gold-light);
   letter-spacing: 0.03em;
-  margin-bottom: 22px;
+  text-align: center;
+  margin: 10px 0 44px;
 }
 
 .about-right p {
@@ -820,51 +832,65 @@ main,
   letter-spacing: 0.02em;
 }
 
-/* ── Why Aarisha ── */
-.why-section {
+.about-right p + p {
+  margin-top: 18px;
+}
+
+/* ── Testimonials ── */
+.testimonials-section {
   padding: 10px 80px 110px;
 }
 
-.why-grid {
-  max-width: 1100px;
+/* Centered flex-wrap: 3 per row on desktop, 2 on tablet, 1 on phones —
+   all five reviews stay visible. */
+.testimonials-grid {
+  max-width: 1240px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 40px;
   text-align: center;
 }
 
-.why-item {
-  padding: 40px 20px;
+.testimonial {
+  flex: 0 0 340px;
+  padding: 40px 24px;
 }
 
-.why-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 24px;
+.testimonial-stars {
+  display: block;
+  margin-bottom: 18px;
+  color: var(--gold);
+  font-size: 15px;
+  letter-spacing: 6px;
+  line-height: 1;
 }
 
-.why-icon svg {
-  width: 100%;
-  height: 100%;
-  stroke: var(--gold);
-  fill: none;
-  stroke-width: 1;
-  filter: drop-shadow(0 0 6px rgba(235, 193, 102, 0.3));
-}
-
-.why-item h3 {
+.testimonial blockquote {
   font-family: var(--font-heading);
-  font-size: 23px;
-  font-weight: 500;
-  color: var(--white);
-  letter-spacing: 0.05em;
-  margin-bottom: 14px;
+  font-style: italic;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.7;
+  color: rgba(204, 233, 216, 0.85);
+  margin-bottom: 22px;
 }
 
-.why-item p {
-  font: 300 15px/1.7 var(--font-body);
-  color: rgba(204, 233, 216, 0.7);
+.testimonial figcaption {
+  font: 600 11px/1.5 var(--font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-light);
+}
+
+.testimonial-location {
+  display: block;
+  margin-top: 6px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: rgba(204, 233, 216, 0.6);
 }
 
 /* ── Instagram Section ── */
@@ -1018,6 +1044,16 @@ main,
 .contact-detail-item span {
   font: 300 15px/1.6 var(--font-body);
   color: rgba(204, 233, 216, 0.82);
+}
+
+.contact-detail-link {
+  font: 300 15px/1.6 var(--font-body);
+  color: rgba(204, 233, 216, 0.82);
+  transition: color 0.3s;
+}
+
+.contact-detail-link:hover {
+  color: var(--gold-light);
 }
 
 /* ── Footer ── */
@@ -1588,7 +1624,7 @@ main,
   }
 
   .collections-section,
-  .why-section,
+  .testimonials-section,
   .instagram-section,
   .contact-section {
     padding: 10px 48px 90px;
@@ -1659,7 +1695,7 @@ main,
   }
 
   .collections-section,
-  .why-section,
+  .testimonials-section,
   .instagram-section,
   .contact-section {
     padding: 10px 24px 80px;
@@ -1696,9 +1732,13 @@ main,
     text-align: center;
   }
 
-  .why-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
+  .testimonials-grid {
+    gap: 24px;
+  }
+
+  .testimonial {
+    flex-basis: min(340px, 100%);
+    padding: 32px 12px;
   }
 
   .insta-grid {
@@ -1823,7 +1863,7 @@ main,
   }
 
   .collections-section,
-  .why-section,
+  .testimonials-section,
   .instagram-section,
   .contact-section {
     padding: 10px 16px 70px;
@@ -1866,12 +1906,12 @@ main,
     gap: 10px;
   }
 
-  .why-grid {
-    gap: 16px;
+  .testimonials-grid {
+    gap: 20px;
   }
 
-  .why-item {
-    padding: 24px 10px;
+  .testimonial {
+    padding: 24px 8px;
   }
 
   .contact-wrapper {
