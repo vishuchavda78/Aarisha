@@ -22,13 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // aria-hidden + pointer-events:none in the markup/CSS; nothing here blocks input.
   // ═══════════════════════════════════════════
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   const glowLayers = document.querySelectorAll('.heritage-bg[data-glow]');
 
-  if (reduceMotion) {
-    // Reduced motion: no tracking, no pulse — the motif renders at a fixed raised
-    // opacity via the prefers-reduced-motion CSS block.
-  } else if (finePointer) {
+  if (glowLayers.length) {
     // Cursor line-glow — a masked copy of the artwork brightens within ~240px of
     // the pointer. The glow copy carries a drop-shadow filter so the LINES
     // themselves emit light (not a radial light source). Position updates are
@@ -50,19 +46,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       };
       const onLeave = () => layer.classList.remove('glowing');
-      document.addEventListener('mousemove', onMove, { passive: true });
-      document.addEventListener('mouseleave', onLeave);
-    });
-  } else {
-    // Touch devices get the slow ambient pulse instead of the cursor glow.
-    glowLayers.forEach(layer => layer.classList.add('pulse'));
-  }
 
-  // Keyboard users get the ambient pulse once they start tabbing — regardless of
-  // pointer type (a keyboard-only desktop user has hover:hover but no cursor).
-  if (!reduceMotion) {
+      // Use unified PointerEvents for mouse, touch, and stylus
+      document.addEventListener('pointermove', onMove, { passive: true });
+      document.addEventListener('pointerleave', onLeave);
+      document.addEventListener('pointerup', onLeave);
+      document.addEventListener('pointercancel', onLeave);
+    });
+
+    // Touch devices or hybrid devices with touch interface get the ambient pulse by default
+    const isTouchFriendly = window.matchMedia('(pointer: coarse)').matches;
+    if (isTouchFriendly && !reduceMotion) {
+      glowLayers.forEach(layer => layer.classList.add('pulse'));
+    }
+
+    // Keyboard users get the ambient pulse once they start tabbing
     document.addEventListener('keydown', event => {
-      if (event.key === 'Tab' && glowLayers.length && !glowLayers[0].classList.contains('pulse')) {
+      if (event.key === 'Tab' && !reduceMotion && !glowLayers[0].classList.contains('pulse')) {
         glowLayers.forEach(layer => layer.classList.add('pulse'));
       }
     });
