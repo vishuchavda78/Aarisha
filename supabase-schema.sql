@@ -4,6 +4,7 @@ create table if not exists products (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   price numeric(10,2) not null check (price > 0),
+  original_price numeric(10,2) check (original_price > 0),
   category text not null check (category in ('rings', 'necklaces', 'bracelets', 'earrings')),
   image_url text not null,
   description text,

@@ -4,6 +4,8 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const API_BASE_URL = ['127.0.0.1', 'localhost'].includes(location.hostname) ? 'http://127.0.0.1:8000' : `${location.origin}/api`;
+  const money = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value));
+  const priceNumber = value => typeof value === 'number' ? value : Number(String(value).replace(/[^0-9.]/g, '')) || 0;
   document.addEventListener('error', event => {
     const image = event.target;
     if (image.tagName === 'IMG' && !image.src.endsWith('/placeholder.svg')) image.src = 'placeholder.svg';
@@ -142,11 +144,15 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = 'product-card reveal';
       card.style.animationDelay = `${index * 80}ms`;
       const outOfStock = product.in_stock === false;
+      const hasDiscount = product.original_price && Number(product.price) < Number(product.original_price);
+      const priceHTML = hasDiscount
+        ? `<span class="original-price">${money(product.original_price)}</span>${money(product.price)}`
+        : money(product.price);
       card.innerHTML = `
         <div class="product-card-img"><img src="${product.image_url}" alt="${product.name}"></div>
         <div class="product-card-info">
           <h4>${product.name}</h4>
-          <span class="price">₹ ${Number(product.price).toLocaleString('en-IN')}</span>
+          <span class="price">${priceHTML}</span>
         </div>
         <div class="card-actions">
           <button type="button" class="add-to-cart" ${outOfStock ? 'disabled' : ''}>${outOfStock ? 'Out of Stock' : 'Add to Cart'}</button>
@@ -240,8 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiCategories = { Earrings: 'earrings', Rings: 'rings', Bracelets: 'bracelets', NeckPieces: 'necklaces' };
   let cart = JSON.parse(sessionStorage.getItem(CART_STORAGE_KEY) || '[]');
 
-  const money = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value));
-  const priceNumber = value => typeof value === 'number' ? value : Number(String(value).replace(/[^0-9.]/g, '')) || 0;
   const productKey = product => String(product.id || product.src || product.name);
   let lastFocusedCart = null;
   let lastFocusedModal = null;
@@ -350,7 +354,16 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const response = await fetch(`${API_BASE_URL}/products/${apiCategories[category]}`);
       if (!response.ok) throw new Error('Unable to load products.');
-      products = (await response.json()).map(product => ({ ...product, src: product.image_url, price: money(product.price) }));
+      products = (await response.json()).map(product => {
+        const hasDiscount = !!(product.original_price && Number(product.price) < Number(product.original_price));
+        return {
+          ...product,
+          src: product.image_url,
+          price: money(product.price),
+          originalPriceFormatted: hasDiscount ? money(product.original_price) : null,
+          hasDiscount
+        };
+      });
     } catch (_) {}
 
     if (products.length === 0) {
@@ -360,11 +373,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = document.createElement('div');
         card.className = 'modal-product-card';
         card.style.animationDelay = `${i * 80}ms`;
+        const priceHTML = p.hasDiscount
+          ? `<span class="original-price">${p.originalPriceFormatted}</span>${p.price}`
+          : p.price;
         card.innerHTML = `
           <div class="modal-product-card-img"><img src="${p.src}" alt="${p.name}"></div>
           <div class="modal-product-card-info">
             <h4>${p.name}</h4>
-            <span class="price">${p.price}</span>
+            <span class="price">${priceHTML}</span>
           </div>`;
         const actions = document.createElement('div');
         actions.className = 'card-actions';
