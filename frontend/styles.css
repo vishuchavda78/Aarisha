@@ -60,6 +60,7 @@ html {
   scroll-behavior: smooth;
   overflow-x: hidden;
   width: 100%;
+  max-width: 100%;
   overscroll-behavior-x: none;
   position: relative;
   /* Keep anchored sections clear of the fixed navbar (UISKILL.md §9.2) */
@@ -71,7 +72,8 @@ body {
   color: var(--white);
   background: var(--forest);
   width: 100%;
-  max-width: 100vw;
+  max-width: 100%;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -212,6 +214,7 @@ main,
 .footer {
   position: relative;
   z-index: 1;
+  overflow-x: clip;
 }
 
 /* ── Scroll Animations ── */
@@ -357,6 +360,31 @@ main,
   box-shadow: 0 0 12px rgba(235, 193, 102, 0.25);
 }
 
+.nav-cart {
+  position: relative;
+}
+
+.nav-cart.ring-burst::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--gold-light);
+  pointer-events: none;
+  animation: cartRingBurst 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes cartRingBurst {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
 .cart-badge {
   position: absolute;
   top: 0;
@@ -370,6 +398,79 @@ main,
   font: 700 10px/17px var(--font-body);
   text-align: center;
   pointer-events: none;
+  transform-origin: center;
+  transition: transform 0.2s var(--transition-smooth);
+}
+
+.cart-badge.bump {
+  animation: cartBadgeBump 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cartBadgeBump {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.4);
+    background: var(--gold-light);
+    box-shadow: 0 0 14px rgba(235, 193, 102, 0.85);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ── Flying Product Image (Spatial flight from card to cart) ── */
+.cart-flying-img {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--gold-light);
+  box-shadow: 0 0 24px rgba(235, 193, 102, 0.85),
+    0 12px 36px rgba(0, 0, 0, 0.7);
+  object-fit: cover;
+  will-change: transform, opacity;
+  background: var(--forest-deep);
+}
+
+/* ── Radial Golden Lines (Encircling cart icon upon arrival) ── */
+.cart-radial-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 72px;
+  height: 72px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+  overflow: visible;
+}
+
+.cart-radial-rays line {
+  stroke: var(--gold-light);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(235, 193, 102, 0.95));
+}
+
+.cart-radial-rays.animate {
+  animation: radialRaysBloom 0.65s cubic-bezier(0.12, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes radialRaysBloom {
+  0% {
+    transform: translate(-50%, -50%) scale(0.35) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.55) rotate(30deg);
+    opacity: 0;
+  }
 }
 
 /* ── Mobile navigation (hamburger + full-screen menu) ── */
@@ -533,27 +634,105 @@ main,
   margin-bottom: 46px;
 }
 
+/* ── Hero Primary CTA: Explore Collections (Regal Gold Plaque with Shimmer & Halo) ── */
 .btn-outline-gold {
-  display: inline-block;
-  font: 600 13px/1 var(--font-body);
-  letter-spacing: 0.16em;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font: 700 13px/1 var(--font-body);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--gold);
-  border: 1px solid var(--gold);
-  background: transparent;
-  padding: 17px 44px;
-  transition: color 0.3s var(--transition-smooth),
-    background 0.3s var(--transition-smooth),
-    box-shadow 0.3s var(--transition-glow),
-    border-color 0.3s;
+  color: var(--forest-deep);
+  background: linear-gradient(135deg, #f3d487 0%, var(--gold-light) 25%, var(--gold) 65%, #ab822b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 4px;
+  padding: 18px 42px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5),
+    0 0 24px rgba(235, 193, 102, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  animation: ctaHaloPulse 3.6s ease-in-out infinite;
+  transition: transform 0.35s var(--transition-smooth),
+    box-shadow 0.35s var(--transition-glow),
+    filter 0.35s;
+  will-change: transform, box-shadow;
+}
+
+/* Diagonal Specular Jewelry Shimmer */
+.btn-outline-gold::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -120%;
+  width: 60%;
+  height: 200%;
+  background: linear-gradient(105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.15) 35%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0.15) 65%,
+    transparent 80%
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  animation: ctaShimmer 4.5s cubic-bezier(0.2, 0.8, 0.3, 1) infinite;
+}
+
+@keyframes ctaShimmer {
+  0%, 20% {
+    left: -120%;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  60%, 100% {
+    left: 200%;
+    opacity: 0;
+  }
+}
+
+/* Breathing Ambient Golden Halo */
+@keyframes ctaHaloPulse {
+  0%, 100% {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(235, 193, 102, 0.4),
+      inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  }
+  50% {
+    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.6),
+      0 0 38px rgba(235, 193, 102, 0.75),
+      0 0 55px rgba(201, 162, 75, 0.35),
+      inset 0 1px 1px rgba(255, 255, 255, 0.75);
+  }
+}
+
+.btn-outline-gold .cta-arrow {
+  width: 15px;
+  height: 15px;
+  stroke: var(--forest-deep);
+  transition: transform 0.3s var(--transition-smooth);
 }
 
 .btn-outline-gold:hover,
 .btn-outline-gold:focus-visible {
-  background: var(--gold);
-  color: var(--forest-deep);
-  border-color: var(--gold-light);
-  box-shadow: 0 0 18px rgba(235, 193, 102, 0.35);
+  transform: translateY(-3px) scale(1.02);
+  filter: brightness(1.06);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.6),
+    0 0 42px rgba(235, 193, 102, 0.85),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.btn-outline-gold:hover .cta-arrow,
+.btn-outline-gold:focus-visible .cta-arrow {
+  transform: translateX(4px);
+}
+
+.btn-outline-gold:active {
+  transform: translateY(-1px) scale(0.99);
 }
 
 /* ── Step-Well Divider (architectural section break) ── */
@@ -1390,6 +1569,8 @@ main,
 
 .add-to-cart,
 .order-whatsapp {
+  position: relative;
+  overflow: hidden;
   width: 100%;
   padding: 12px;
   font: 600 11px/1 var(--font-body);
@@ -1399,7 +1580,8 @@ main,
   transition: background 0.3s var(--transition-smooth),
     color 0.3s var(--transition-smooth),
     box-shadow 0.3s var(--transition-glow),
-    border-color 0.3s;
+    border-color 0.3s,
+    transform 0.18s var(--transition-smooth);
 }
 
 .add-to-cart {
@@ -1412,6 +1594,37 @@ main,
   background: var(--gold);
   color: var(--forest-deep);
   box-shadow: 0 0 16px rgba(235, 193, 102, 0.35);
+}
+
+/* Vivid theme-aligned Added state */
+.add-to-cart.is-added {
+  background: var(--gold-light) !important;
+  color: var(--forest-deep) !important;
+  border-color: var(--gold-light) !important;
+  box-shadow: 0 0 22px rgba(235, 193, 102, 0.55),
+    inset 0 0 10px rgba(255, 255, 255, 0.35) !important;
+  transform: scale(0.98);
+}
+
+/* Gold ripple effect inside button */
+.add-to-cart-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(235, 193, 102, 0.6) 40%, rgba(201, 162, 75, 0) 75%);
+  transform: translate(-50%, -50%) scale(0);
+  animation: goldBtnRipple 0.55s cubic-bezier(0.1, 0.5, 0.2, 1) forwards;
+}
+
+@keyframes goldBtnRipple {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3.5);
+    opacity: 0;
+  }
 }
 
 .order-whatsapp {
@@ -1582,34 +1795,81 @@ main,
   z-index: 4000;
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: min(92vw, 420px);
-  padding: 14px 22px;
-  background: var(--off-white);
-  color: var(--ink);
+  gap: 14px;
+  max-width: min(92vw, 440px);
+  padding: 12px 20px 12px 14px;
+  background: linear-gradient(135deg, rgba(6, 32, 21, 0.97) 0%, rgba(0, 24, 14, 0.98) 100%);
+  color: var(--white);
   border: 1px solid var(--gold);
   border-radius: 4px;
-  font: 500 13px/1.4 var(--font-body);
-  letter-spacing: 0.04em;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4),
-    0 0 18px rgba(235, 193, 102, 0.2);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65),
+    0 0 24px rgba(201, 162, 75, 0.25),
+    inset 0 0 1px 1px rgba(235, 193, 102, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   opacity: 0;
   pointer-events: none;
-  transform: translateX(-50%) translateY(14px);
-  transition: opacity 0.3s var(--transition-smooth),
-    transform 0.3s var(--transition-smooth);
+  transform: translateX(-50%) translateY(24px) scale(0.96);
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.toast svg {
-  width: 16px;
-  height: 16px;
+.toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
+}
+
+.toast-icon-wrap {
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
-  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(201, 162, 75, 0.15);
+  border: 1px solid rgba(201, 162, 75, 0.45);
+  color: var(--gold-light);
+  box-shadow: 0 0 12px rgba(235, 193, 102, 0.2);
+}
+
+.toast-icon-wrap svg {
+  width: 15px;
+  height: 15px;
+}
+
+.toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.toast-tag {
+  font: 700 9px/1 var(--font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-light);
+}
+
+.toast-title {
+  font: 500 13px/1.3 var(--font-body);
+  letter-spacing: 0.03em;
+  color: var(--white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 310px;
 }
 
 .toast.show {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%) translateY(0) scale(1);
 }
 
 /* ═══════════════════════════════════════════
@@ -1655,39 +1915,86 @@ main,
 
 @media (max-width: 900px) {
   /* Tablet + phone: collapse the inline nav links into the hamburger menu.
-     Hiding at 900 (not 768) fixes the 769–850px range where the three-column
-     nav (links/brand/icons) overflows the viewport and clips the cart icon.
-     The toggle becomes the first grid cell (left), keeping the brand centered. */
-  .nav-links {
-    display: none;
-  }
-
-  .nav-menu-toggle {
-    display: grid;
-  }
-
-  /* 44px tap target + subtle gold hairline so the toggle reads as a button
-     next to the borderless cart icon; compound selector beats the 40px rule
-     in the 600px block */
-  .nav-icon-btn.nav-menu-toggle {
-    width: 44px;
-    height: 44px;
-    border-color: rgba(201, 162, 75, 0.35);
-  }
-}
-
-@media (max-width: 768px) {
+     Switch from 3-column grid to flex space-between so the brand is on the left
+     and actions on the right, eliminating fractional column expansion and overflow. */
   .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 14px 24px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .navbar.scrolled {
     padding: 10px 24px;
   }
 
+  .nav-links {
+    display: none;
+  }
+
   .nav-brand {
-    letter-spacing: 0.22em;
     font-size: 18px;
+    letter-spacing: 0.2em;
+    min-width: 0;
+    flex-shrink: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    justify-content: flex-end;
+  }
+
+  .nav-menu-toggle {
+    display: grid;
+  }
+
+  /* 44px tap target + subtle gold hairline */
+  .nav-icon-btn.nav-menu-toggle {
+    width: 44px;
+    height: 44px;
+    border-color: rgba(201, 162, 75, 0.35);
+  }
+
+  /* Non-functional placeholder buttons (Search/Account) hidden on tablets & phones
+     so the hamburger + cart never crowd the brand mark */
+  .nav-icon-btn[aria-label="Search"],
+  .nav-icon-btn[aria-label="Account"] {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 12px 20px;
+  }
+
+  .navbar.scrolled {
+    padding: 10px 20px;
+  }
+
+  .nav-brand {
+    letter-spacing: 0.16em;
+    font-size: 17px;
+  }
+
+  /* Vertical-only reveals on tablets and phones to eliminate horizontal off-screen expansion */
+  .reveal-left,
+  .reveal-right {
+    transform: translateY(24px);
+  }
+
+  .reveal-left.visible,
+  .reveal-right.visible {
+    transform: translateY(0);
   }
 
   /* Responsive backdrop image scaling is handled by object-fit */
@@ -1814,24 +2121,26 @@ main,
   }
 
   .nav-brand {
-    font-size: 16px;
-    letter-spacing: 0.18em;
+    font-size: 15px;
+    letter-spacing: 0.14em;
   }
 
   .nav-actions {
-    gap: 10px;
+    gap: 8px;
   }
 
   .nav-icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .nav-icon-btn.nav-menu-toggle {
     width: 40px;
     height: 40px;
   }
 
-  /* Non-functional placeholder buttons (Search/Account) are hidden on phones
-     so the hamburger + cart never crowd the brand mark */
-  .nav-icon-btn[aria-label="Search"],
-  .nav-icon-btn[aria-label="Account"] {
-    display: none;
+  .collection-card-frame {
+    inset: -4px;
   }
 
   .cart-drawer {
@@ -1859,8 +2168,9 @@ main,
   }
 
   .btn-outline-gold {
-    padding: 15px 26px;
-    letter-spacing: 0.12em;
+    padding: 15px 32px;
+    font-size: 12px;
+    letter-spacing: 0.16em;
   }
 
   .section-heading {
@@ -1985,7 +2295,12 @@ main,
 
   .toast {
     bottom: 20px;
-    padding: 12px 16px;
+    padding: 10px 16px 10px 12px;
+    gap: 10px;
+  }
+
+  .toast-title {
+    max-width: 220px;
     font-size: 12px;
   }
 }
@@ -1998,11 +2313,32 @@ main,
   }
 
   .modal-category-title {
-    font-size: 32px;
+    font-size: 30px;
+  }
+
+  .navbar,
+  .navbar.scrolled {
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   .nav-brand {
-    letter-spacing: 0.14em;
+    font-size: 13.5px;
+    letter-spacing: 0.1em;
+  }
+
+  .nav-actions {
+    gap: 6px;
+  }
+
+  .nav-icon-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .nav-icon-btn.nav-menu-toggle {
+    width: 36px;
+    height: 36px;
   }
 }
 

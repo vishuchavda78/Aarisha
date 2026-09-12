@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <button type="button" class="order-whatsapp" ${outOfStock ? 'disabled' : ''}>Order on WhatsApp</button>
         </div>`;
       featuredScroll.appendChild(card);
-      card.querySelector('.add-to-cart').addEventListener('click', () => addToCart(product));
+      card.querySelector('.add-to-cart').addEventListener('click', (e) => addToCart(product, e.currentTarget, e));
       card.querySelector('.order-whatsapp').addEventListener('click', () => orderOnWhatsApp(product));
       revealObserver.observe(card);
     }))
@@ -256,22 +256,184 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   let toastTimer = null;
-  function showToast(message) {
+  function showToast(productName) {
     const toast = document.getElementById('cartToast');
     const messageEl = document.getElementById('cartToastMsg');
     if (!toast || !messageEl) return;
-    messageEl.textContent = message;
+    messageEl.textContent = productName;
     toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
   }
 
-  function addToCart(product) {
+  // ── Vivid Add-to-Cart Motion & Spatial Feedback (UISKILL.md §6.2, §6.3) ──
+  function triggerAddToCartAnimation(button, clickEvent) {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // 1. Button Tactile Feedback & Ripple
+    if (button) {
+      if (!prefersReducedMotion) {
+        const rect = button.getBoundingClientRect();
+        const ripple = document.createElement('span');
+        ripple.className = 'add-to-cart-ripple';
+        const x = clickEvent && clickEvent.clientX ? (clickEvent.clientX - rect.left) : (rect.width / 2);
+        const y = clickEvent && clickEvent.clientY ? (clickEvent.clientY - rect.top) : (rect.height / 2);
+        const size = Math.max(rect.width, rect.height) * 2.2;
+        ripple.style.width = `${size}px`;
+        ripple.style.height = `${size}px`;
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        button.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+      }
+
+      // Button confirmation state: "Added ✓" with gold shimmer
+      if (!button.dataset.originalText) {
+        button.dataset.originalText = button.textContent;
+      }
+      button.classList.add('is-added');
+      button.textContent = 'Added ✓';
+      setTimeout(() => {
+        button.classList.remove('is-added');
+        button.textContent = button.dataset.originalText || 'Add to Cart';
+        delete button.dataset.originalText;
+      }, 1200);
+    }
+
+    const cartToggle = document.getElementById('cartToggle');
+    const cartBadge = document.getElementById('cartCount');
+
+    // Generate 12 radial golden lines encircling the cart icon (architectural Rani ki Vav burst)
+    function createRadialRaysSVG() {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'cart-radial-rays animate');
+      svg.setAttribute('viewBox', '0 0 72 72');
+      svg.setAttribute('aria-hidden', 'true');
+      const numRays = 12;
+      const cx = 36, cy = 36, rInner = 20, rOuter = 34;
+      for (let i = 0; i < numRays; i++) {
+        const angle = (i * 2 * Math.PI) / numRays;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', (cx + rInner * Math.cos(angle)).toFixed(1));
+        line.setAttribute('y1', (cy + rInner * Math.sin(angle)).toFixed(1));
+        line.setAttribute('x2', (cx + rOuter * Math.cos(angle)).toFixed(1));
+        line.setAttribute('y2', (cy + rOuter * Math.sin(angle)).toFixed(1));
+        svg.appendChild(line);
+      }
+      return svg;
+    }
+
+    // Trigger cart badge bump, golden ring shockwave & radial rays
+    function triggerCartBadgeFeedback() {
+      if (cartBadge) {
+        cartBadge.classList.remove('bump');
+        void cartBadge.offsetWidth; // force reflow
+        cartBadge.classList.add('bump');
+        setTimeout(() => cartBadge.classList.remove('bump'), 500);
+      }
+      if (cartToggle) {
+        cartToggle.classList.remove('ring-burst');
+        void cartToggle.offsetWidth; // force reflow
+        cartToggle.classList.add('ring-burst');
+        setTimeout(() => cartToggle.classList.remove('ring-burst'), 650);
+
+        // Encircling radial golden rays
+        const existingRays = cartToggle.querySelectorAll('.cart-radial-rays');
+        existingRays.forEach(r => r.remove());
+        const rays = createRadialRaysSVG();
+        cartToggle.appendChild(rays);
+        setTimeout(() => rays.remove(), 700);
+      }
+    }
+
+    // 2. Spatial Flying Product Image (Takes product image and glides to cart)
+    if (cartToggle && !prefersReducedMotion) {
+      // Find source image in product card or fallback to button
+      const card = button ? button.closest('.product-card, .modal-product-card') : null;
+      const sourceImg = card ? card.querySelector('img') : null;
+      const imgSrc = sourceImg ? sourceImg.src : (product ? (product.image_url || product.src) : null);
+
+      let startRect = null;
+      if (sourceImg && sourceImg.getBoundingClientRect().width > 0) {
+        startRect = sourceImg.getBoundingClientRect();
+      } else if (button && button.getBoundingClientRect().width > 0) {
+        startRect = button.getBoundingClientRect();
+      }
+
+      const cartRect = cartToggle.getBoundingClientRect();
+
+      if (startRect && cartRect.width > 0 && imgSrc) {
+        // Thumbnail starts matching source image aspect ratio or compact jewel plaque (max 80px)
+        const initialWidth = Math.min(startRect.width, 88);
+        const initialHeight = Math.min(startRect.height, 88);
+        const startX = startRect.left + (startRect.width - initialWidth) / 2;
+        const startY = startRect.top + (startRect.height - initialHeight) / 2;
+
+        const flyingImg = document.createElement('img');
+        flyingImg.className = 'cart-flying-img';
+        flyingImg.src = imgSrc;
+        flyingImg.alt = '';
+        flyingImg.style.width = `${initialWidth}px`;
+        flyingImg.style.height = `${initialHeight}px`;
+        flyingImg.style.left = `${startX}px`;
+        flyingImg.style.top = `${startY}px`;
+        document.body.appendChild(flyingImg);
+
+        const targetCenterX = cartRect.left + cartRect.width / 2;
+        const targetCenterY = cartRect.top + cartRect.height / 2;
+        const startCenterX = startX + initialWidth / 2;
+        const startCenterY = startY + initialHeight / 2;
+
+        const deltaX = targetCenterX - startCenterX;
+        const deltaY = targetCenterY - startCenterY;
+
+        // Animate along an elegant arc to the cart center
+        const duration = 750;
+        const animation = flyingImg.animate([
+          {
+            transform: 'translate3d(0, 0, 0) scale(1) rotate(0deg)',
+            opacity: 1
+          },
+          {
+            offset: 0.35,
+            transform: `translate3d(${deltaX * 0.35}px, ${deltaY * 0.15 - 70}px, 0) scale(0.85) rotate(-6deg)`,
+            opacity: 1
+          },
+          {
+            offset: 0.75,
+            transform: `translate3d(${deltaX * 0.8}px, ${deltaY * 0.8}px, 0) scale(0.42) rotate(10deg)`,
+            opacity: 0.95
+          },
+          {
+            transform: `translate3d(${deltaX}px, ${deltaY}px, 0) scale(0.12) rotate(20deg)`,
+            opacity: 0
+          }
+        ], {
+          duration,
+          easing: 'cubic-bezier(0.2, 0.85, 0.3, 1)',
+          fill: 'forwards'
+        });
+
+        animation.onfinish = () => {
+          flyingImg.remove();
+          triggerCartBadgeFeedback();
+        };
+
+        return;
+      }
+    }
+
+    // Fallback: immediate feedback if not animating flight
+    triggerCartBadgeFeedback();
+  }
+
+  function addToCart(product, triggerButton, clickEvent) {
     const normalized = { id: productKey(product), serverProductId: product.id || null, name: product.name, price: priceNumber(product.price), src: product.image_url || product.src };
     const existing = cart.find(item => item.id === normalized.id);
     existing ? existing.quantity += 1 : cart.push({ ...normalized, quantity: 1 });
     saveCart();
-    showToast(`${normalized.name} added to cart`);
+    triggerAddToCartAnimation(triggerButton, clickEvent, product);
+    showToast(normalized.name);
   }
 
   // Order a single product on WhatsApp (independent of the cart)
@@ -390,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addButton.type = 'button';
         addButton.textContent = p.in_stock === false ? 'Out of Stock' : 'Add to Cart';
         addButton.disabled = p.in_stock === false;
-        addButton.addEventListener('click', () => addToCart(p));
+        addButton.addEventListener('click', (e) => addToCart(p, e.currentTarget, e));
         actions.appendChild(addButton);
 
         const whatsappButton = document.createElement('button');

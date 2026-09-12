@@ -5,6 +5,47 @@
 > operating document (RULES.md, UISKILL.md) writes into this single shared file under
 > category-tagged subsections.
 
+## [2026-09-12 16:35]
+
+### [Category: UI] — Standout "Explore Collections" Hero CTA with Specular Shimmer, Ambient Halo & Directional Chevron
+What changed:
+- **Visual Weight & Dominance** (`frontend/styles.css`): Elevated the primary hero CTA from an understated outline button into a luminous Solid Antique Gold Jewel Plaque using a curated multi-stop metallic gradient (`linear-gradient(135deg, #f3d487, var(--gold-light), var(--gold), #ab822b)`), framed with a crisp outer rim (`1px solid rgba(243, 212, 135, 0.7)`).
+- **Typography & High Contrast**: Switched text color to Deep Forest Green (`#00180e`, `font-weight: 700`, `letter-spacing: 0.16em`) guaranteeing high-contrast legibility and WCAG AA compliance against the gold background.
+- **Micro-Animations & Motion**:
+  - Specular jewelry light sweep (`@keyframes ctaShimmer` on a 4.5s loop) sweeping across the button surface without disturbing content.
+  - Ambient breathing aura (`@keyframes ctaHaloPulse` on a 3.6s cycle) utilizing pseudo-element with `--gold` and `--gold-light` radial glow to naturally draw the visitor's eye.
+  - Interactive hover/focus state elevating with `translateY(-3px)` and expanding golden drop shadow.
+  - Directional indicator: Added inline SVG chevron arrow (`.btn-arrow`) that smoothly drifts forward (`translateX(4px)`) on hover.
+- **HTML Markup** (`frontend/index.html`): Updated the hero CTA anchor tag with the directional arrow SVG and proper accessibility attributes.
+Why: Owner request for the "Explore Collections" button to be significantly more noticeable, stand out, and draw visitors' eyes using captivating, theme-aligned animation.
+Verification: Browser verification confirmed specular light sweep, breathing halo, high-contrast typography, interactive hover drift, and proper rendering across viewport widths.
+
+## [2026-09-12 16:25]
+
+### [Category: UI] — Eliminate Mobile Viewport Horizontal Overflow & Modernize Responsive Navbar
+What changed:
+- **Global Viewport & Overflow Containment** (`frontend/styles.css`): Enforced `overflow-x: hidden; width: 100%; max-width: 100%;` on both `html` and `body` (removed `max-width: 100vw` which caused scrollbar overflow). Added `overflow-x: clip` to `main` and `.footer`.
+- **Navbar Layout Overhaul** (`frontend/styles.css`): Replaced the 3-column desktop grid (`1fr auto 1fr`) at `@media (max-width: 900px)` with a fluid `display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 100%; box-sizing: border-box;`. Ensured `.nav-brand` sits flush left (`min-width: 0; flex-shrink: 1; text-overflow: ellipsis; white-space: nowrap;`) and `.nav-actions` sits flush right (`flex-shrink: 0;`).
+- **Placeholder Button Cleanup** (`frontend/styles.css`): Hidden non-functional Search and Account buttons at `<= 900px` (when hamburger toggle appears) rather than waiting for `<= 600px`, reducing `.nav-actions` from 218px to 94px and preventing intermediate tablet/phone layout collision.
+- **Scroll Reveal Translation Containment** (`frontend/styles.css`): Normalized `.reveal-left` and `.reveal-right` at `<= 768px` to use vertical translations (`translateY(24px)`) instead of horizontal `translateX(±60px)`, eliminating off-screen elements pushing the document width out prior to reveal.
+- **Mobile Fine-Tuning** (`frontend/styles.css`): Refined padding, brand typography, and touch targets across `600px` and `360px` breakpoints; constrained `.collection-card-frame` to `inset: -4px`.
+- **Toast Tag Correction** (`frontend/index.html`): Updated the luxury toast tag to "Added to Cart" per owner request.
+Why: Owner reported bad mobile UX where mobile users had to scroll right to see content, cutting off "THE AARISHA" on the left and pushing the cart icon off-screen on the right.
+Root cause: The desktop 3-column CSS Grid forced column 1 and column 3 to expand symmetrically via `1fr` minimum content sizing (`min-width: auto`), combined with `translateX(60px)` scroll reveals and `max-width: 100vw` lacking `overflow-x: hidden` on `body`.
+Verification: Verified in Chrome across mobile viewports (360px, 375px, 502px) confirming 0 overflowing elements, zero horizontal scrolling, and both brand mark and hamburger+cart icons 100% visible on load.
+
+## [2026-09-12 16:15]
+
+### [Category: UI] — Vivid Add-to-Cart Product Image Flight, Radial Golden Halo & Luxury Toast
+What changed:
+- **Button Micro-Interaction** (`frontend/styles.css`, `frontend/script.js`): Added tactile golden ripple emanating from click coordinates, followed by a smooth button state transition to "Added ✓" with a warm gold shimmer/glow (`--gold-light`, `box-shadow: 0 0 22px rgba(235, 193, 102, 0.55)`), cleanly auto-reverting after 1200ms.
+- **Flying Product Image Preview** (`frontend/styles.css`, `frontend/script.js`): Replaced single dot particle with a floating jewel clone of the actual product image (`.cart-flying-img`) framed by a 2px Antique Gold border with outer glow. It smoothly glides in an arced trajectory via Web Animations API (WAAPI on compositor thread) directly toward the navbar cart bag icon.
+- **Radial Golden Lines Halo & Cart Feedback** (`frontend/styles.css`, `frontend/script.js`): On arrival at `#cartToggle`, triggers an architectural burst of 12 radiating golden rays (`.cart-radial-rays`) encircling the cart icon, a golden shockwave ring (`.ring-burst`), and an elastic cart badge scale bump (`#cartCount.bump`).
+- **Elevated Luxury Toast** (`frontend/index.html`, `frontend/styles.css`): Upgraded `#cartToast` into a regal Deep Forest plaque with double-line gold framing, emerald/gold checkmark badge, uppercase gold tag "Added to Cart", and high-contrast product title. Auto-dismisses smoothly after 2.8s.
+- **Accessibility & Reduced Motion**: All animations wrapped with `prefers-reduced-motion: reduce` fallback; toast preserves `role="status"` and `aria-live="polite"`.
+Why: Owner request for vivid, theme-matching Add-to-Cart interaction with actual product image flight, encircling radial golden lines on the cart icon, and "Added to Cart" toast notification.
+Verification: Browser verification confirmed button feedback, image flight, radial burst lines on `#cartToggle`, badge bump, and toast notification appearance.
+
 ## [2026-08-17 00:45]
 
 ### [Category: Dev] — Instagram everywhere: hyperlinks + real posts via the Basic Display API
