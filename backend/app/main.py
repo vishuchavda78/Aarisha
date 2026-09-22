@@ -11,8 +11,6 @@ import time
 import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from google.auth.transport.requests import Request as GoogleAuthRequest
-from google.oauth2 import service_account
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -50,13 +48,19 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-_google_creds: service_account.Credentials | None = None
+_google_creds = None
 
 
-def get_google_credentials() -> service_account.Credentials | None:
+def get_google_credentials():
     global _google_creds
     if _google_creds is not None:
         return _google_creds
+
+    try:
+        from google.oauth2 import service_account
+    except ImportError as e:
+        logger.warning(f"Google oauth2 library not available: {e}")
+        return None
 
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
     if settings.google_service_account_json:
@@ -92,6 +96,7 @@ def get_google_access_token() -> str | None:
     if not creds:
         return None
     try:
+        from google.auth.transport.requests import Request as GoogleAuthRequest
         if not creds.valid:
             creds.refresh(GoogleAuthRequest())
         return creds.token
