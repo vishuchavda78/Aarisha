@@ -19,11 +19,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 logger = logging.getLogger("uvicorn.error")
 
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ENV_FILES = (
+    os.path.join(ROOT_DIR, ".env"),
+    os.path.join(ROOT_DIR, "backend", ".env"),
+    ".env",
+    "backend/.env",
+)
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=(".env", "backend/.env"), extra="ignore")
-    supabase_url: str
-    supabase_service_role_key: str
-    brand_whatsapp_number: str
+    model_config = SettingsConfigDict(env_file=ENV_FILES, extra="ignore")
+    supabase_url: str = ""
+    supabase_service_role_key: str = ""
+    brand_whatsapp_number: str = "919924343003"
     instagram_access_token: str | None = None
     allowed_origins: str = "http://127.0.0.1:5500,http://localhost:5500"
     google_spreadsheet_id: str | None = None
@@ -159,6 +168,12 @@ class WhatsAppOrder(BaseModel):
 
 
 async def supabase(method: str, table: str, *, params: dict | None = None, payload: object | None = None, prefer: str | None = None):
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        logger.error("Supabase credentials not configured in environment variables.")
+        raise HTTPException(
+            status_code=500,
+            detail="Database configuration missing: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in environment variables.",
+        )
     headers = {"apikey": settings.supabase_service_role_key, "Authorization": f"Bearer {settings.supabase_service_role_key}"}
     if prefer:
         headers["Prefer"] = prefer

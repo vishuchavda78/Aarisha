@@ -199,7 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
       card.querySelector('.order-whatsapp').addEventListener('click', (e) => orderOnWhatsApp(product, e.currentTarget));
       revealObserver.observe(card);
     }))
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Error loading featured products:', err);
+      });
 
     // Drag-to-scroll
     let isDown = false, startX, scrollLeft;
@@ -704,7 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
           hasDiscount
         };
       });
-    } catch (_) {}
+    } catch (err) {
+      console.error('Error loading products for category', category, err);
+    }
 
     if (products.length === 0) {
       modalGrid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--gold);font-family:var(--font-heading);font-size:20px;font-style:italic;padding:60px 0;">Coming Soon — Stay Tuned</p>';

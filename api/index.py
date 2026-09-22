@@ -1,5 +1,11 @@
-"""Vercel entrypoint for the same-domain catalogue API."""
 import os
+import sys
+
+# Ensure repository root is in Python's search path so backend.* imports succeed on Vercel
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
@@ -7,8 +13,7 @@ from backend.app.main import app as catalogue_app
 
 app = FastAPI()
 app.mount("/api", catalogue_app)
-
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+app.mount("", catalogue_app)
 # The v3 "Heritage Gold & Forest" frontend lives in frontend/ (index.html, styles.css,
 # script.js, Logo.png, placeholder.svg). vercel.json rewrites non-API root paths to
 # /frontend/*; these routes are the FastAPI fallback for the same paths.
