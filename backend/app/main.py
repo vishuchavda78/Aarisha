@@ -221,7 +221,7 @@ async def products_by_category(category: Category):
 
 
 @app.post("/orders/whatsapp-link")
-async def whatsapp_link(order: WhatsAppOrder, background_tasks: BackgroundTasks):
+async def whatsapp_link(order: WhatsAppOrder):
     """Create a WhatsApp draft only; it neither takes payment nor records an order."""
     name = order.customer_name.strip()
     phone = order.customer_phone.strip()
@@ -251,8 +251,11 @@ async def whatsapp_link(order: WhatsAppOrder, background_tasks: BackgroundTasks)
     msg_lines.append(f"Mobile: {phone}")
     message = "\n".join(msg_lines)
 
-    # Asynchronously sync unique customer to Google Sheet
-    background_tasks.add_task(sync_customer_to_google_sheet, name, phone)
+    # Sync unique customer to Google Sheet directly before response so serverless execution context does not freeze mid-flight
+    try:
+        await sync_customer_to_google_sheet(name, phone)
+    except Exception as e:
+        logger.warning(f"Google Sheet sync background task encountered an error: {e}")
 
     return {"url": f"https://wa.me/{clean_num}?text={quote(message)}"}
 
