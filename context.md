@@ -41,8 +41,8 @@ API docs are at `http://127.0.0.1:8000/docs` while the API runs. On Vercel the A
 | API | FastAPI (`backend/app/main.py`), served locally by uvicorn, on Vercel via `api/index.py` (mounted under `/api`) |
 | Database | Supabase Postgres via the REST API (`/rest/v1/...`), using the server-side service-role key |
 | Auth | None — no user accounts; all API routes are public |
-| External services | Supabase (data), WhatsApp (`wa.me`) deep links |
-| Dependencies | `backend/requirements.txt` (Vercel: `api/requirements.txt`): fastapi, uvicorn, httpx, pydantic-settings, email-validator |
+| External services | Supabase (data), WhatsApp (`wa.me`) deep links, Google Sheets API v4 (customer roster sync via service account) |
+| Dependencies | `backend/requirements.txt` (Vercel: `api/requirements.txt`): fastapi, uvicorn, httpx, pydantic-settings, email-validator, google-auth |
 | Operating docs | `RULES.md` (agent rules), `UISKILL.md` (UI/UX & motion manual), `DESIGN.md` (design system — v3), `Changelog.md` (change log) |
 
 ## Repository structure
@@ -100,6 +100,7 @@ The Git index previously tracked `Earrings/`, `Rings/`, and `Bracelets/` product
 - Catalogue loaded live from the API: "Reflecting you" featured strip (`GET /products`, cards with Add to Cart + Order on WhatsApp) and category modal (`GET /products/{category}`).
 - Cart drawer: session-scoped (`sessionStorage`), quantity +/- controls, remove, live count badge, scrim overlay. Adding to cart triggers vivid tactile feedback (button ripple, "Added ✓" state with gold shimmer), a floating product image jewel that glides in a parabolic arc to the cart icon, a burst of 12 radial architectural golden lines and ring shockwave encircling the cart icon, cart badge bump, and an elevated luxury plaque toast notification ("Added to Cart", `role="status"` + `aria-live`) that auto-dismisses after ~2.8s. All motion respects `prefers-reduced-motion: reduce`.
 - **Order on WhatsApp**: POSTs cart items to `/orders/whatsapp-link`, opens the generated `wa.me` draft, clears the cart on success. Product cards also have a per-product **Order on WhatsApp** button that POSTs just that item (quantity 1) without touching the cart. No payment/checkout exists.
+- **Google Sheets Customer Sync**: When an order is placed (both single items and cart), customer details (`Customer Name` and `Phone No.`) are asynchronously synchronized to a connected Google Sheet (`GOOGLE_SPREADSHEET_ID`) using Google Sheets API v4 via a Service Account (`service_account.json` or `GOOGLE_SERVICE_ACCOUNT_JSON`). Concurrency-safe and prevents duplicate entries by normalizing and matching against core mobile digits (last 10 digits). Runs non-blocking via FastAPI `BackgroundTasks` so WhatsApp ordering is never delayed.
 - Reveal-on-scroll animations (`.reveal`, `.reveal-left`, `.reveal-right`) via IntersectionObserver with sibling stagger.
 - About / brand-story section (signature line + three "mirror"-themed story paragraphs), Testimonials section (five 5-star reviews from Indian/Gujarati customers), Instagram placeholder grid, contact section (visible; form remains a non-functional placeholder).
 - Footer: three-column grid (brand + logo, links, contact with phone numbers), flare divider, social icons.
@@ -124,12 +125,13 @@ Browser (storefront)
    ▼
 FastAPI app  ──►  Supabase REST (/rest/v1/products)
    │                (service-role key, server-side only)
-   └─ POST /orders/whatsapp-link builds a wa.me deep link with server-side prices
+   ├─ POST /orders/whatsapp-link builds a wa.me deep link with server-side prices
+   └─ BackgroundTask ──► Google Sheets API v4 (appends unique [Name, Phone] to Sheet1)
 ```
 
 - **API base detection** (in `script.js`): if `location.hostname` is `127.0.0.1` or `localhost`, use `http://127.0.0.1:8000`; otherwise use `${location.origin}/api`.
 - **Static serving on Vercel**: `vercel.json` rewrites `/api/(.*)` to the function and `/(.*)` to `/frontend/$1`, so all non-API root paths (including `/`, `/index.html`, `/styles.css`, `/script.js`, `/Logo.png`, `/placeholder.svg`) resolve into `frontend/`. `api/index.py` keeps FastAPI fallback routes that serve the same files from `frontend/`.
-- **Secrets** (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BRAND_WHATSAPP_NUMBER`, `INSTAGRAM_ACCESS_TOKEN`) live only in backend env vars / `.env` — never in browser code.
+- **Secrets** (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BRAND_WHATSAPP_NUMBER`, `INSTAGRAM_ACCESS_TOKEN`, `GOOGLE_SPREADSHEET_ID`, `service_account.json` / `GOOGLE_SERVICE_ACCOUNT_JSON`) live only in backend env vars / `.env` — never in browser code.
 - **CORS**: allowlist from `ALLOWED_ORIGINS` (default `http://127.0.0.1:5500,http://localhost:5500`).
 - **WhatsApp flow**: the order phone number never appears in page source; the browser only receives a `wa.me` deep link from the API. (Support phone numbers shown in the footer come from the Stitch design export and are not the WhatsApp ordering number.)
 

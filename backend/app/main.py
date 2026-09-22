@@ -3,22 +3,32 @@ from __future__ import annotations
 
 from decimal import Decimal
 from enum import Enum
+import json
+import logging
+import os
 import time
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from google.auth.transport.requests import Request as GoogleAuthRequest
+from google.oauth2 import service_account
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+logger = logging.getLogger("uvicorn.error")
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=(".env", "backend/.env"), extra="ignore")
     supabase_url: str
     supabase_service_role_key: str
     brand_whatsapp_number: str
     instagram_access_token: str | None = None
     allowed_origins: str = "http://127.0.0.1:5500,http://localhost:5500"
+    google_spreadsheet_id: str | None = None
+    google_service_account_file: str | None = "service_account.json"
+    google_service_account_json: str | None = None
 
 
 settings = Settings()
@@ -30,6 +40,104 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+
+_google_creds: service_account.Credentials | None = None
+
+
+def get_google_credentials() -> service_account.Credentials | None:
+    global _google_creds
+    if _google_creds is not None:
+        return _google_creds
+
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    if settings.google_service_account_json:
+        try:
+            info = json.loads(settings.google_service_account_json)
+            _google_creds = service_account.Credentials.from_service_account_info(info, scopes=scopes)
+            return _google_creds
+        except Exception as e:
+            logger.warning(f"Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
+
+    if settings.google_service_account_file:
+        candidate_paths = [
+            settings.google_service_account_file,
+            os.path.join(os.getcwd(), settings.google_service_account_file),
+            os.path.join(os.path.dirname(__file__), "..", settings.google_service_account_file),
+            os.path.join(os.path.dirname(__file__), "..", "..", "backend", settings.google_service_account_file),
+        ]
+        for p in candidate_paths:
+            norm = os.path.normpath(p)
+            if os.path.isfile(norm):
+                try:
+                    _google_creds = service_account.Credentials.from_service_account_file(norm, scopes=scopes)
+                    return _google_creds
+                except Exception as e:
+                    logger.warning(f"Failed to load service account file {norm}: {e}")
+                    break
+
+    return None
+
+
+def get_google_access_token() -> str | None:
+    creds = get_google_credentials()
+    if not creds:
+        return None
+    try:
+        if not creds.valid:
+            creds.refresh(GoogleAuthRequest())
+        return creds.token
+    except Exception as e:
+        logger.warning(f"Failed to refresh Google access token: {e}")
+        return None
+
+
+def normalize_phone_core(phone: str) -> str:
+    """Extract core phone digits for deduplication (e.g. last 10 digits for Indian mobiles)."""
+    digits = "".join(filter(str.isdigit, phone))
+    return digits[-10:] if len(digits) > 10 else digits
+
+
+async def sync_customer_to_google_sheet(name: str, phone: str) -> None:
+    """Background task: Log customer name and phone to Google Sheet if not already present."""
+    if not settings.google_spreadsheet_id:
+        return
+
+    token = get_google_access_token()
+    if not token:
+        logger.warning("Google Sheet sync skipped: Unable to obtain Google access token.")
+        return
+
+    core_phone = normalize_phone_core(phone)
+    if not core_phone:
+        return
+
+    sheet_id = settings.google_spreadsheet_id.strip()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            get_resp = await client.get(
+                f"https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}/values/Sheet1!B:B",
+                headers=headers,
+            )
+            if get_resp.is_success:
+                existing_rows = get_resp.json().get("values", [])
+                for row in existing_rows[1:]:
+                    if row and normalize_phone_core(str(row[0])) == core_phone:
+                        logger.info(f"Google Sheet: Customer {phone} ({core_phone}) already recorded. Skipping duplicate.")
+                        return
+
+            append_resp = await client.post(
+                f"https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}/values/Sheet1!A:B:append?valueInputOption=RAW",
+                headers=headers,
+                json={"values": [[name, phone]]},
+            )
+            if append_resp.is_success:
+                logger.info(f"Google Sheet: Successfully logged customer {name} ({phone})")
+            else:
+                logger.warning(f"Google Sheet append failed ({append_resp.status_code}): {append_resp.text}")
+    except Exception as e:
+        logger.warning(f"Google Sheet sync background task encountered an error: {e}")
 
 
 class Category(str, Enum):
@@ -93,7 +201,7 @@ async def products_by_category(category: Category):
 
 
 @app.post("/orders/whatsapp-link")
-async def whatsapp_link(order: WhatsAppOrder):
+async def whatsapp_link(order: WhatsAppOrder, background_tasks: BackgroundTasks):
     """Create a WhatsApp draft only; it neither takes payment nor records an order."""
     name = order.customer_name.strip()
     phone = order.customer_phone.strip()
@@ -122,6 +230,10 @@ async def whatsapp_link(order: WhatsAppOrder):
     msg_lines.append(f"Name: {name}")
     msg_lines.append(f"Mobile: {phone}")
     message = "\n".join(msg_lines)
+
+    # Asynchronously sync unique customer to Google Sheet
+    background_tasks.add_task(sync_customer_to_google_sheet, name, phone)
+
     return {"url": f"https://wa.me/{clean_num}?text={quote(message)}"}
 
 

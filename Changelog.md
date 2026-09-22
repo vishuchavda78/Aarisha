@@ -5,6 +5,27 @@
 > operating document (RULES.md, UISKILL.md) writes into this single shared file under
 > category-tagged subsections.
 
+## [2026-09-22 20:55]
+
+### [Category: Dev] — Google Cloud Sheets API Integration: Customer Sync & Phone Deduplication
+What changed:
+- **Backend Customer Sync Pipeline** (`backend/app/main.py`):
+  - Integrated Google Sheets API v4 via Service Account authentication (`google.oauth2.service_account` & `google.auth.transport.requests`).
+  - Added token management with caching and automatic refresh.
+  - Implemented `normalize_phone_core` to extract canonical 10-digit mobile numbers, preventing duplicates across varied formatting (e.g. `+91 99243 43003` vs `9924343003`).
+  - Implemented `sync_customer_to_google_sheet(name, phone)`: queries Column B (`values/Sheet1!B:B`) to verify uniqueness, and appends `[customer_name, customer_phone]` using `valueInputOption=RAW` to prevent Google Sheets from interpreting phone numbers starting with `+` as formulas.
+  - Hooked into `/orders/whatsapp-link` via FastAPI `BackgroundTasks` so that both single product orders and cart orders are recorded asynchronously without adding checkout latency.
+- **Environment & Configuration** (`backend/app/main.py`, `backend/.env.example`):
+  - Added `google_spreadsheet_id`, `google_service_account_file`, and `google_service_account_json` configuration settings.
+  - Configured `SettingsConfigDict` to check both `.env` and `backend/.env`.
+- **Security & Dependencies** (`.gitignore`, `backend/requirements.txt`, `api/requirements.txt`):
+  - Added `google-auth>=2.20.0,<3` to requirement manifests.
+  - Added `*service_account*.json`, `credentials*.json`, and `backend/*.json` to `.gitignore` to guarantee service account private keys are never committed to version control.
+- **Documentation** (`context.md`):
+  - Updated technology, external services, dependencies, feature list, and data flow architecture sections to document the Google Sheets integration.
+Why: Owner requested storing customer names and phone numbers in a Google Sheet (`Customer Name | Phone No.`) from all website orders (individual and cart orders) with duplicate prevention keyed on customer phone numbers, using Google Cloud Console API.
+Verification: Integration tests confirmed Service Account authentication, Column B duplicate checking, raw appending of new contacts, skipping of duplicate contacts across different number formats, and zero impact on WhatsApp link generation.
+
 ## [2026-09-12 16:35]
 
 ### [Category: UI] — Standout "Explore Collections" Hero CTA with Specular Shimmer, Ambient Halo & Directional Chevron
