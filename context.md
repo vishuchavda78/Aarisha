@@ -64,15 +64,17 @@ The-aarisha/
 ├── RULES.md                 # Agent operating rules
 ├── UISKILL.md               # UI/UX & motion design operating manual
 ├── README.md                # Setup + deployment instructions
-├── supabase-schema.sql      # DB schema: products table, RLS policy
+├── supabase-schema.sql      # DB schema: products table, category constraint, performance indexes, RLS policies (mirrors root supabase_production.sql)
 ├── vercel.json              # Rewrites: /api/* → api/index.py; other root paths → /frontend/*
-├── .gitignore
+├── .gitignore               # Ignores .env, .env.*, backend/.env, venvs, and secrets
+├── .env                     # Local/root environment configuration (gitignored)
 ├── api/
 │   ├── index.py             # Vercel entrypoint: mounts the catalogue app under /api, serves frontend/ files
 │   └── requirements.txt     # Vercel dependency manifest (mirrors backend/requirements.txt)
 └── backend/
     ├── requirements.txt
-    ├── .env.example         # Env var template (never commit a populated .env)
+    ├── .env                 # Backend environment configuration (gitignored)
+    ├── .env.example         # Documented environment template (never commit populated .env)
     └── app/
         ├── __init__.py
         └── main.py          # FastAPI app: settings, public product routes, WhatsApp link

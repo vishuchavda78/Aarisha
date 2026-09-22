@@ -5,6 +5,36 @@
 > operating document (RULES.md, UISKILL.md) writes into this single shared file under
 > category-tagged subsections.
 
+## [2026-09-22 21:15]
+
+### [Category: Dev] — Production Supabase Credentials Applied
+What changed:
+- Updated `SUPABASE_URL` to `https://mbsrziyhkqicoiwywotv.supabase.co` in both `backend/.env` and root `.env`.
+- Updated `SUPABASE_SERVICE_ROLE_KEY` to the project's production service role JWT in both `backend/.env` and root `.env`.
+Why: Applied live production Supabase project URL and service role credentials provided by project owner.
+Verification: Executed test suite (`python -m unittest discover backend/tests`) — 4/4 tests passed.
+
+## [2026-09-22 21:12]
+
+### [Category: Dev] — Supabase Production Database Schema & Environment Calibrations
+What changed:
+- **Production Database Schema Integration** (`supabase_production.sql`, `supabase-schema.sql`):
+  - Created master production PostgreSQL schema in workspace root (`supabase_production.sql`) to initialize the production Supabase database.
+  - Added table definition for `products` with columns `id`, `name`, `price`, `original_price`, `category`, `image_url`, `description`, `in_stock`, and `created_at`.
+  - Expanded category check constraint to safely support `rings`, `necklaces`, `neckpieces`, `necklace`, `bracelets`, and `earrings`.
+  - Added B-tree performance indexes: `idx_products_category`, `idx_products_created_at`, and `idx_products_in_stock`.
+  - Enabled Row Level Security (RLS) with public select policy (`Allow public read access`) and explicit service role policy (`Allow service role full access`).
+  - Synchronized repository schema `supabase-schema.sql` to match `supabase_production.sql`.
+- **Environment & Security Hardening** (`backend/.env`, `backend/.env.example`, `.env`, `.gitignore`):
+  - Updated `backend/.env` with structured sections, comments, and deployment instructions for Supabase, WhatsApp orders, CORS origins, and Google Sheets sync.
+  - Updated `backend/.env.example` template with comprehensive setup instructions.
+  - Created root `.env` to support both root FastAPI / Vercel execution and local backend runs seamlessly.
+  - Updated `.gitignore` to ignore `.env` and `.env.*` at root in addition to `backend/.env`.
+- **Documentation** (`context.md`):
+  - Updated file tree and architecture notes in `context.md` reflecting schema and environment structure.
+Why: Owner requested a final production SQL file in the root directory to run in the new production Supabase database and calibration of environment files for both repositories.
+Verification: Ran backend test suite (`python -m unittest discover backend/tests`) passing 4/4 tests; confirmed schema constraints align with FastAPI models and frontend catalog categories.
+
 ## [2026-09-22 20:55]
 
 ### [Category: Dev] — Google Cloud Sheets API Integration: Customer Sync & Phone Deduplication
