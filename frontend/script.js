@@ -11,6 +11,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (image.tagName === 'IMG' && !image.src.endsWith('/placeholder.svg')) image.src = 'placeholder.svg';
   }, true);
 
+  // ── Brand Contact Synchronization (Pulls BRAND_WHATSAPP_NUMBER from backend .env) ──
+  async function syncBrandContact() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/brand/contact`);
+      if (!response.ok) return;
+      const data = await response.json();
+      const rawNumber = data.whatsapp_number || '';
+      const digits = data.digits || rawNumber.replace(/\D/g, '');
+      const waUrl = data.whatsapp_url || `https://wa.me/${digits}`;
+      const telUrl = data.tel_url || `tel:+${digits}`;
+
+      let formattedNumber = rawNumber;
+      if (digits.length === 12 && digits.startsWith('91')) {
+        formattedNumber = `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+      } else if (digits.length === 10) {
+        formattedNumber = `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+      } else if (rawNumber && !rawNumber.startsWith('+')) {
+        formattedNumber = `+${rawNumber}`;
+      }
+
+      document.querySelectorAll('[data-brand-phone]').forEach(el => {
+        el.textContent = formattedNumber;
+      });
+      document.querySelectorAll('[data-brand-whatsapp-link]').forEach(el => {
+        el.href = waUrl;
+      });
+      document.querySelectorAll('[data-brand-tel-link]').forEach(el => {
+        el.href = telUrl;
+      });
+    } catch (_) {
+      // Fallback silently if offline or API unreachable
+    }
+  }
+  syncBrandContact();
+
   // ── Sticky Navigation ──
   const navbar = document.getElementById('navbar');
   window.addEventListener('scroll', () => {
@@ -22,7 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const anyOpen =
       document.getElementById('mobileMenu').classList.contains('open') ||
       document.getElementById('collectionModal').classList.contains('open') ||
-      document.getElementById('cartDrawer').classList.contains('open');
+      document.getElementById('cartDrawer').classList.contains('open') ||
+      (document.getElementById('orderModal') && document.getElementById('orderModal').classList.contains('open'));
     document.body.style.overflow = anyOpen ? 'hidden' : '';
   }
 
@@ -160,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`;
       featuredScroll.appendChild(card);
       card.querySelector('.add-to-cart').addEventListener('click', (e) => addToCart(product, e.currentTarget, e));
-      card.querySelector('.order-whatsapp').addEventListener('click', () => orderOnWhatsApp(product));
+      card.querySelector('.order-whatsapp').addEventListener('click', (e) => orderOnWhatsApp(product, e.currentTarget));
       revealObserver.observe(card);
     }))
       .catch(() => {});
@@ -188,46 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
       event.preventDefault();
       featuredScroll.scrollBy({ left: event.key === 'ArrowRight' ? 280 : -280, behavior: reduceMotion ? 'auto' : 'smooth' });
     });
-  }
-
-  // ── Instagram grid — real posts via the API, placeholder fallback ──
-  const instaGrid = document.getElementById('instaGrid');
-
-  function renderInstaPlaceholders() {
-    ['placeholder.svg', 'placeholder.svg', 'placeholder.svg', 'placeholder.svg', 'placeholder.svg'].forEach(src => {
-      const div = document.createElement('div');
-      div.className = 'insta-placeholder reveal';
-      div.innerHTML = `<img src="${src}" alt="Instagram" style="width:100%;height:100%;object-fit:cover;">`;
-      instaGrid.appendChild(div);
-    });
-    instaGrid.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
-  }
-
-  if (instaGrid) {
-    fetch(`${API_BASE_URL}/instagram/posts`)
-      .then(response => response.ok ? response.json() : [])
-      .then(posts => {
-        if (!posts.length) return renderInstaPlaceholders();
-        posts.forEach(post => {
-          const link = document.createElement('a');
-          link.className = 'insta-placeholder reveal';
-          link.href = post.permalink || 'https://www.instagram.com/the.aarisha_/';
-          link.target = '_blank';
-          link.rel = 'noopener';
-          link.setAttribute('aria-label', post.alt || 'Aarisha on Instagram');
-          const img = document.createElement('img');
-          img.src = post.image || 'placeholder.svg';
-          img.alt = post.alt || 'Aarisha on Instagram';
-          img.loading = 'lazy';
-          img.style.width = '100%';
-          img.style.height = '100%';
-          img.style.objectFit = 'cover';
-          link.appendChild(img);
-          instaGrid.appendChild(link);
-          revealObserver.observe(link);
-        });
-      })
-      .catch(() => renderInstaPlaceholders());
   }
 
   // ── Collection Detail Modal ──
@@ -436,16 +432,206 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(normalized.name);
   }
 
-  // Order a single product on WhatsApp (independent of the cart)
-  async function orderOnWhatsApp(product) {
+  // ── Order on WhatsApp Details Modal ──
+  const orderModal = document.getElementById('orderModal');
+  const orderModalScrim = document.getElementById('orderModalScrim');
+  const orderModalClose = document.getElementById('orderModalClose');
+  const orderModalForm = document.getElementById('orderModalForm');
+  const orderModalSummary = document.getElementById('orderModalSummary');
+  const waCustomerName = document.getElementById('waCustomerName');
+  const waCustomerPhone = document.getElementById('waCustomerPhone');
+  const waNameError = document.getElementById('waNameError');
+  const waPhoneError = document.getElementById('waPhoneError');
+  const orderModalSubmit = document.getElementById('orderModalSubmit');
+
+  let activeOrderContext = null;
+  let lastFocusedOrder = null;
+
+  function loadSavedCustomer() {
+    try {
+      const saved = localStorage.getItem('aarisha_customer_info');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveCustomer(name, phone) {
+    try {
+      localStorage.setItem('aarisha_customer_info', JSON.stringify({ name, phone }));
+    } catch {}
+  }
+
+  function openOrderModal(context, triggerEl) {
+    activeOrderContext = context;
+    lastFocusedOrder = triggerEl || document.activeElement;
+
+    // Reset validation errors
+    if (waCustomerName) waCustomerName.closest('.order-form-group')?.classList.remove('has-error');
+    if (waCustomerPhone) waCustomerPhone.closest('.order-form-group')?.classList.remove('has-error');
+    if (waNameError) waNameError.textContent = '';
+    if (waPhoneError) waPhoneError.textContent = '';
+
+    // Populate summary preview
+    if (context.type === 'single') {
+      const p = context.product;
+      const imgSrc = p.image_url || p.src || 'placeholder.svg';
+      const priceVal = typeof p.price === 'number' ? money(p.price) : p.price;
+      const categoryLabel = p.category ? String(p.category).toUpperCase() : 'EXCLUSIVE PIECE';
+      orderModalSummary.innerHTML = `
+        <div class="order-preview-single">
+          <img class="order-preview-img" src="${imgSrc}" alt="${p.name}">
+          <div class="order-preview-details">
+            <h4>${p.name}</h4>
+            <p>${categoryLabel}</p>
+          </div>
+          <div class="order-preview-price">${priceVal}</div>
+        </div>
+      `;
+    } else if (context.type === 'cart') {
+      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+      orderModalSummary.innerHTML = `
+        <div class="order-preview-cart">
+          <div class="order-preview-cart-info">
+            <div class="order-preview-cart-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18m-5 4a4 4 0 01-8 0"/></svg>
+            </div>
+            <div class="order-preview-cart-text">
+              <h4>Your Cart Selection</h4>
+              <p>${count} ${count === 1 ? 'item' : 'items'} ready to order</p>
+            </div>
+          </div>
+          <div class="order-preview-price">${money(total)}</div>
+        </div>
+      `;
+    }
+
+    // Pre-fill from localStorage if available
+    const saved = loadSavedCustomer();
+    if (saved) {
+      if (saved.name && !waCustomerName.value) waCustomerName.value = saved.name;
+      if (saved.phone && !waCustomerPhone.value) waCustomerPhone.value = saved.phone;
+    }
+
+    orderModal.classList.add('open');
+    orderModal.setAttribute('aria-hidden', 'false');
+    orderModal.inert = false;
+    updateScrollLock();
+
+    // Focus first input or phone if name already filled
+    setTimeout(() => {
+      if (!waCustomerName.value) waCustomerName.focus();
+      else if (!waCustomerPhone.value) waCustomerPhone.focus();
+      else if (orderModalSubmit) orderModalSubmit.focus();
+    }, 60);
+  }
+
+  function closeOrderModal() {
+    orderModal.classList.remove('open');
+    orderModal.setAttribute('aria-hidden', 'true');
+    orderModal.inert = true;
+    updateScrollLock();
+    if (lastFocusedOrder) lastFocusedOrder.focus();
+    activeOrderContext = null;
+  }
+
+  if (orderModalClose) orderModalClose.addEventListener('click', closeOrderModal);
+  if (orderModalScrim) orderModalScrim.addEventListener('click', closeOrderModal);
+
+  if (orderModalForm) {
+    orderModalForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!activeOrderContext) return;
+
+      const nameVal = waCustomerName.value.trim();
+      const rawPhoneVal = waCustomerPhone.value.trim();
+
+      let hasError = false;
+
+      // Validate name
+      const nameGroup = waCustomerName.closest('.order-form-group');
+      if (!nameVal || nameVal.length < 2) {
+        if (nameGroup) nameGroup.classList.add('has-error');
+        if (waNameError) waNameError.textContent = 'Please enter your name (at least 2 characters).';
+        hasError = true;
+      } else {
+        if (nameGroup) nameGroup.classList.remove('has-error');
+        if (waNameError) waNameError.textContent = '';
+      }
+
+      // Validate phone (at least 10 digits)
+      const phoneDigits = rawPhoneVal.replace(/\D/g, '');
+      const phoneGroup = waCustomerPhone.closest('.order-form-group');
+      if (!rawPhoneVal || phoneDigits.length < 10) {
+        if (phoneGroup) phoneGroup.classList.add('has-error');
+        if (waPhoneError) waPhoneError.textContent = 'Please enter a valid 10-digit mobile number.';
+        hasError = true;
+      } else {
+        if (phoneGroup) phoneGroup.classList.remove('has-error');
+        if (waPhoneError) waPhoneError.textContent = '';
+      }
+
+      if (hasError) return;
+
+      saveCustomer(nameVal, rawPhoneVal);
+
+      let formattedPhone = rawPhoneVal;
+      if (!formattedPhone.startsWith('+')) {
+        formattedPhone = `+91 ${phoneDigits.length === 10 ? phoneDigits : rawPhoneVal}`;
+      }
+
+      let itemsPayload = [];
+      if (activeOrderContext.type === 'single') {
+        const prod = activeOrderContext.product;
+        const productId = prod.serverProductId || prod.id;
+        if (!productId) return alert('Connect the catalogue API before ordering on WhatsApp.');
+        itemsPayload = [{ product_id: productId, quantity: 1 }];
+      } else if (activeOrderContext.type === 'cart') {
+        if (!cart.length) return;
+        if (cart.some(item => !item.serverProductId)) return alert('Connect the catalogue API before ordering on WhatsApp.');
+        itemsPayload = cart.map(item => ({ product_id: item.serverProductId, quantity: item.quantity }));
+      }
+
+      orderModalSubmit.disabled = true;
+      orderModalSubmit.classList.add('is-loading');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/orders/whatsapp-link`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: itemsPayload,
+            customer_name: nameVal,
+            customer_phone: formattedPhone
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Unable to create WhatsApp order link.');
+
+        window.open(data.url, '_blank', 'noopener');
+
+        if (activeOrderContext.type === 'cart') {
+          cart = [];
+          saveCart();
+          setCartOpen(false);
+        }
+
+        closeOrderModal();
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        orderModalSubmit.disabled = false;
+        orderModalSubmit.classList.remove('is-loading');
+      }
+    });
+  }
+
+  // Order a single product on WhatsApp (prompts for Name & Mobile first)
+  function orderOnWhatsApp(product, triggerEl) {
     const productId = product.serverProductId || product.id;
     if (!productId) return alert('Connect the catalogue API before ordering on WhatsApp.');
-    try {
-      const response = await fetch(`${API_BASE_URL}/orders/whatsapp-link`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: [{ product_id: productId, quantity: 1 }] }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Unable to create WhatsApp order link.');
-      window.open(data.url, '_blank', 'noopener');
-    } catch (error) { alert(error.message); }
+    openOrderModal({ type: 'single', product }, triggerEl);
   }
 
   function renderCart() {
@@ -488,18 +674,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (button.dataset.cartAction === 'remove' || item.quantity < 1) cart = cart.filter(entry => entry.id !== item.id);
     saveCart();
   });
-  document.getElementById('whatsappOrder').addEventListener('click', async () => {
+  document.getElementById('whatsappOrder').addEventListener('click', (e) => {
     if (!cart.length) return;
     if (cart.some(item => !item.serverProductId)) return alert('Connect the catalogue API before ordering on WhatsApp.');
-    try {
-      const response = await fetch(`${API_BASE_URL}/orders/whatsapp-link`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map(item => ({ product_id: item.serverProductId, quantity: item.quantity })) }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Unable to create WhatsApp order link.');
-      window.open(data.url, '_blank', 'noopener');
-      cart = [];
-      saveCart();
-      setCartOpen(false);
-    } catch (error) { alert(error.message); }
+    openOrderModal({ type: 'cart' }, e.currentTarget);
   });
   renderCart();
 
@@ -560,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
         whatsappButton.type = 'button';
         whatsappButton.textContent = 'Order on WhatsApp';
         whatsappButton.disabled = p.in_stock === false;
-        whatsappButton.addEventListener('click', () => orderOnWhatsApp(p));
+        whatsappButton.addEventListener('click', (e) => orderOnWhatsApp(p, e.currentTarget));
         actions.appendChild(whatsappButton);
 
         card.appendChild(actions);
@@ -608,13 +786,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Escape closes the topmost overlay; Tab is trapped inside open overlays
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (mobileMenu.classList.contains('open')) setMenuOpen(false);
+      if (orderModal && orderModal.classList.contains('open')) closeOrderModal();
+      else if (mobileMenu.classList.contains('open')) setMenuOpen(false);
       else if (collectionModal.classList.contains('open')) closeCollectionModal();
       else if (document.getElementById('cartDrawer').classList.contains('open')) setCartOpen(false);
       return;
     }
     if (e.key === 'Tab') {
-      if (collectionModal.classList.contains('open')) trapFocus(collectionModal, e);
+      if (orderModal && orderModal.classList.contains('open')) trapFocus(orderModal, e);
+      else if (collectionModal.classList.contains('open')) trapFocus(collectionModal, e);
       else if (document.getElementById('cartDrawer').classList.contains('open')) trapFocus(document.getElementById('cartDrawer'), e);
     }
   });
@@ -624,8 +804,9 @@ document.addEventListener('DOMContentLoaded', () => {
     anchor.addEventListener('click', function (e) {
       e.preventDefault();
       // Close whatever overlay is up first, so the navigation actually happens
-      // visibly — the product modal, mobile menu, and cart drawer all lock the
+      // visibly — the product modal, mobile menu, cart drawer, and order modal all lock the
       // page scroll, which would otherwise swallow the jump.
+      if (orderModal && orderModal.classList.contains('open')) closeOrderModal();
       if (mobileMenu.classList.contains('open')) setMenuOpen(false);
       if (collectionModal.classList.contains('open')) closeCollectionModal();
       if (document.getElementById('cartDrawer').classList.contains('open')) setCartOpen(false);

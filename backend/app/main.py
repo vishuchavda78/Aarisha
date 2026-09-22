@@ -46,6 +46,8 @@ class WhatsAppItem(BaseModel):
 
 class WhatsAppOrder(BaseModel):
     items: list[WhatsAppItem] = Field(min_length=1, max_length=50)
+    customer_name: str = Field(min_length=1, max_length=100)
+    customer_phone: str = Field(min_length=5, max_length=30)
 
 
 async def supabase(method: str, table: str, *, params: dict | None = None, payload: object | None = None, prefer: str | None = None):
@@ -69,6 +71,17 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/brand/contact")
+async def brand_contact():
+    clean_num = "".join(filter(str.isdigit, settings.brand_whatsapp_number))
+    return {
+        "whatsapp_number": settings.brand_whatsapp_number,
+        "digits": clean_num,
+        "whatsapp_url": f"https://wa.me/{clean_num}",
+        "tel_url": f"tel:+{clean_num}" if not settings.brand_whatsapp_number.startswith("+") else f"tel:{settings.brand_whatsapp_number}",
+    }
+
+
 @app.get("/products")
 async def products():
     return await supabase("GET", "products", params={"select": "*", "order": "created_at.desc"})
@@ -82,6 +95,13 @@ async def products_by_category(category: Category):
 @app.post("/orders/whatsapp-link")
 async def whatsapp_link(order: WhatsAppOrder):
     """Create a WhatsApp draft only; it neither takes payment nor records an order."""
+    name = order.customer_name.strip()
+    phone = order.customer_phone.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="Customer name cannot be empty")
+    if not phone:
+        raise HTTPException(status_code=422, detail="Customer mobile number cannot be empty")
+
     lines, total = [], Decimal("0")
     for item in order.items:
         rows = await supabase("GET", "products", params={"id": f"eq.{item.product_id}", "select": "name,price,in_stock"})
@@ -92,8 +112,17 @@ async def whatsapp_link(order: WhatsAppOrder):
         total += price * item.quantity
         lines.append(f"{len(lines) + 1}. {product['name']} - Qty: {item.quantity} - INR {price:,.2f} each")
     from urllib.parse import quote
-    message = "Hi Aarisha! I'd like to order:\n" + "\n".join(lines) + f"\nTotal: INR {total:,.2f}"
-    return {"url": f"https://wa.me/{settings.brand_whatsapp_number}?text={quote(message)}"}
+    clean_num = "".join(filter(str.isdigit, settings.brand_whatsapp_number))
+    msg_lines = ["Hi Aarisha! I'd like to order:", ""]
+    msg_lines.extend(lines)
+    msg_lines.append("")
+    msg_lines.append(f"Total: INR {total:,.2f}")
+    msg_lines.append("")
+    msg_lines.append("Customer Details:")
+    msg_lines.append(f"Name: {name}")
+    msg_lines.append(f"Mobile: {phone}")
+    message = "\n".join(msg_lines)
+    return {"url": f"https://wa.me/{clean_num}?text={quote(message)}"}
 
 
 # Instagram feed — cached 10 minutes (Graph API rate limit is 200 calls/hour).
