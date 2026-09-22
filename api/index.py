@@ -6,39 +6,14 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-import traceback
-from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+
+from backend.app.main import app as catalogue_app
 
 app = FastAPI()
-
-_startup_error = None
-try:
-    from backend.app.main import app as catalogue_app
-    app.mount("/api", catalogue_app)
-    app.mount("", catalogue_app)
-except Exception:
-    _startup_error = traceback.format_exc()
-
-
-@app.middleware("http")
-async def startup_check_middleware(request: Request, call_next):
-    if _startup_error and not request.url.path.endswith("/debug-status"):
-        return PlainTextResponse(f"API Startup Error on Vercel:\n{_startup_error}", status_code=500)
-    return await call_next(request)
-
-
-@app.get("/api/debug-status")
-@app.get("/debug-status")
-async def debug_status():
-    return {
-        "status": "online",
-        "startup_error": _startup_error,
-        "root_dir": ROOT_DIR,
-        "has_supabase_url": bool(os.environ.get("SUPABASE_URL")),
-        "has_service_key": bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY")),
-        "has_whatsapp": bool(os.environ.get("BRAND_WHATSAPP_NUMBER")),
-    }
+app.mount("/api", catalogue_app)
+app.mount("", catalogue_app)
 # The v3 "Heritage Gold & Forest" frontend lives in frontend/ (index.html, styles.css,
 # script.js, Logo.png, placeholder.svg). vercel.json rewrites non-API root paths to
 # /frontend/*; these routes are the FastAPI fallback for the same paths.
