@@ -5,7 +5,7 @@ from urllib.parse import unquote
 
 os.environ.setdefault("SUPABASE_URL", "https://mock.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "mock-service-key")
-os.environ.setdefault("BRAND_WHATSAPP_NUMBER", "+919924343003")
+os.environ.setdefault("BRAND_WHATSAPP_NUMBER", "+919157756560")
 
 from fastapi.testclient import TestClient
 from backend.app.main import app

@@ -5,6 +5,60 @@
 > operating document (RULES.md, UISKILL.md) writes into this single shared file under
 > category-tagged subsections.
 
+## [2026-09-25 18:50]
+
+### [Category: Feature, UI, Backend] — Terms of Service, Shipping & Returns, Search, Instagram Badge, Phone Update, Email Removal
+
+What changed:
+
+**New pages:**
+- Created `frontend/terms.html` — comprehensive Terms of Service page with 10 sections (acceptance, products, ordering, IP, user responsibilities, privacy, liability, modifications, governing law, contact).
+- Created `frontend/shipping-returns.html` — full shipping and return policy with a prominent 5-day return callout badge, shipping timelines (metro/rest-of-India/remote), return eligibility and process, exchanges, damaged product handling, and jewellery care guide.
+- Added routes in `api/index.py` for `/terms`, `/terms.html`, `/shipping-returns`, `/shipping-returns.html`.
+- Both pages use the heritage design system (forest green + gold) with `policy-page` / `policy-card` / `policy-badge` CSS.
+
+**Brand phone number update:**
+- Changed from `919924343003` / `+91 99243 43003` to `919157756560` / `+91 91577 56560` across:
+  - `backend/app/main.py` (default setting)
+  - `backend/.env`, `backend/.env.example`, root `.env`
+  - `backend/tests/test_orders.py`
+  - `frontend/index.html` (contact section, footer, WhatsApp links, tel links)
+  - Both new policy pages
+
+**Email removal:**
+- Removed `hello@aarisha.com` from the Reach Us section in `frontend/index.html`.
+
+**Instagram follow badge:**
+- Added a top-left navbar Instagram icon with periodic shake animation (6.5s cycle).
+- "FOLLOW US" text in Comic Neue (comic font) slides in from left, stays visible, then slides back into the icon.
+- Added `Comic Neue` Google Font import.
+- Responsive: text hidden ≤900px, icon-only. Reduced motion: static display.
+
+**Product search with caching:**
+- Added a search button (magnifying glass icon) to the navbar.
+- Full-screen glassmorphism search overlay with:
+  - Debounced live search (150ms) across product name, category, and description.
+  - Category filter pills (All / Earrings / Rings / Bracelets / Neck Pieces).
+  - Two-tier cache: in-memory Map + `sessionStorage` with 5-min TTL.
+  - Per-query result caching in a Map keyed by `query|filter`.
+  - Product result cards with Add to Cart and WhatsApp order buttons.
+  - Focus trap, Escape close, scroll lock, aria-live results region.
+- Integrated into the existing overlay management chain (updateScrollLock, Escape key, Tab trap, smooth scroll cleanup).
+
+**Footer links:**
+- Updated footer to link to `terms.html` and `shipping-returns.html` (replaced dead `#` placeholders).
+- Removed the Privacy Policy placeholder link (not yet implemented).
+
+**CSS additions (~570 lines):**
+- `.nav-insta-follow`, `.insta-icon-wrap`, `.insta-follow-text` with `@keyframes instaShake` and `@keyframes followTextSlide`.
+- `.search-overlay`, `.search-input`, `.search-filter-pill`, `.search-results-grid`, `.search-result-card` and related.
+- `.policy-page`, `.policy-container`, `.policy-card`, `.policy-badge` and responsive breakpoints.
+- `prefers-reduced-motion` overrides for the Instagram badge animations.
+
+Files changed: `frontend/index.html`, `frontend/styles.css`, `frontend/script.js`, `frontend/terms.html` (new), `frontend/shipping-returns.html` (new), `backend/app/main.py`, `backend/.env`, `backend/.env.example`, `.env`, `backend/tests/test_orders.py`, `api/index.py`, `context.md`, `Changelog.md`.
+
+Verification: `python -m pytest -o pythonpath=. -v` — 4/4 tests passed.
+
 ## [2026-09-22 21:15]
 
 ### [Category: Dev] — Production Supabase Credentials Applied

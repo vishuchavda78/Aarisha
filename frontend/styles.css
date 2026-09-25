@@ -1931,15 +1931,26 @@ main,
     font-size: 17px;
   }
 
-  /* Vertical-only reveals on tablets and phones to eliminate horizontal off-screen expansion */
+  /* Disable scroll animations on mobile viewport: elements appear immediately */
+  .reveal,
   .reveal-left,
   .reveal-right {
-    transform: translateY(24px);
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 
-  .reveal-left.visible,
-  .reveal-right.visible {
-    transform: translateY(0);
+  /* Disable keyframe animations across mobile viewport */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* Preserve essential spinning state for order submission feedback if active */
+  .order-spinner {
+    animation: orderSpin 0.7s linear infinite !important;
   }
 
   /* Responsive backdrop image scaling is handled by object-fit */
@@ -2707,5 +2718,649 @@ main,
   /* .heritage-bg .motif-glow { display: none; } */
   .heritage-bg .motif-base {
     opacity: calc(var(--rest-op, 0.12) + 0.06) !important;
+  }
+
+  /* Static Instagram badge — no animation on reduced motion */
+  .nav-insta-follow .insta-icon-wrap {
+    animation: none !important;
+  }
+  .nav-insta-follow .insta-fly {
+    animation: none !important;
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   INSTAGRAM FOLLOW BADGE — inline in nav-actions (between search & WhatsApp)
+   Text flies comically from bottom/bottom-left/bottom-right INTO the icon.
+   ═══════════════════════════════════════════ */
+
+.nav-insta-follow {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  text-decoration: none;
+  color: var(--gold-light);
+  overflow: visible;
+}
+
+.insta-icon-wrap {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid rgba(201, 162, 75, 0.5);
+  border-radius: 8px;
+  background: rgba(201, 162, 75, 0.08);
+  position: relative;
+  z-index: 2;
+  animation: instaShake 5s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.insta-icon-wrap svg {
+  width: 17px;
+  height: 17px;
+  fill: var(--gold-light);
+}
+
+/* The flying text elements — positioned absolutely relative to the badge */
+.insta-fly {
+  position: absolute;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--gold-light);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  text-shadow: 0 0 6px rgba(235, 193, 102, 0.5);
+}
+
+/* "FOLLOW" flies from directly below → into icon center */
+.insta-fly-bottom {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 40px) scale(1.3) rotate(-5deg);
+  animation: flyFromBottom 5s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+/* "US" flies from bottom-left → into icon center */
+.insta-fly-bl {
+  left: 50%;
+  top: 50%;
+  transform: translate(calc(-50% - 30px), 35px) scale(1.4) rotate(12deg);
+  animation: flyFromBL 5s ease-in-out infinite;
+  animation-delay: 2.3s;
+}
+
+/* "✦" flies from bottom-right → into icon center */
+.insta-fly-br {
+  left: 50%;
+  top: 50%;
+  transform: translate(calc(-50% + 30px), 38px) scale(1.5) rotate(-15deg);
+  animation: flyFromBR 5s ease-in-out infinite;
+  animation-delay: 2.6s;
+}
+
+/* ── Fly from BOTTOM (straight up into icon) ── */
+@keyframes flyFromBottom {
+  0%, 10% {
+    opacity: 0;
+    transform: translate(-50%, 44px) scale(1.3) rotate(-5deg);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, 24px) scale(1.1) rotate(3deg);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, 8px) scale(0.8) rotate(-2deg);
+  }
+  26% {
+    opacity: 0;
+    transform: translate(-50%, 0px) scale(0.1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 44px) scale(1.3) rotate(-5deg);
+  }
+}
+
+/* ── Fly from BOTTOM-LEFT (diagonal up-right into icon) ── */
+@keyframes flyFromBL {
+  0%, 10% {
+    opacity: 0;
+    transform: translate(calc(-50% - 32px), 40px) scale(1.4) rotate(12deg);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(calc(-50% - 16px), 22px) scale(1.1) rotate(-6deg);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(calc(-50% - 4px), 6px) scale(0.7) rotate(4deg);
+  }
+  28% {
+    opacity: 0;
+    transform: translate(-50%, 0px) scale(0.1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% - 32px), 40px) scale(1.4) rotate(12deg);
+  }
+}
+
+/* ── Fly from BOTTOM-RIGHT (diagonal up-left into icon) ── */
+@keyframes flyFromBR {
+  0%, 10% {
+    opacity: 0;
+    transform: translate(calc(-50% + 34px), 42px) scale(1.5) rotate(-15deg);
+  }
+  16% {
+    opacity: 1;
+    transform: translate(calc(-50% + 18px), 24px) scale(1.1) rotate(8deg);
+  }
+  24% {
+    opacity: 1;
+    transform: translate(calc(-50% + 4px), 5px) scale(0.6) rotate(-3deg);
+  }
+  30% {
+    opacity: 0;
+    transform: translate(-50%, 0px) scale(0.1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + 34px), 42px) scale(1.5) rotate(-15deg);
+  }
+}
+
+/* ── Icon shakes when absorbing text ── */
+@keyframes instaShake {
+  0%, 18% {
+    transform: rotate(0deg);
+    box-shadow: 0 0 0 transparent;
+  }
+  20% {
+    transform: rotate(-8deg) scale(1.1);
+    box-shadow: 0 0 10px rgba(235, 193, 102, 0.5);
+  }
+  22% {
+    transform: rotate(7deg) scale(1.05);
+  }
+  24% {
+    transform: rotate(-5deg) scale(1.08);
+  }
+  26% {
+    transform: rotate(4deg) scale(1.02);
+  }
+  28% {
+    transform: rotate(-2deg);
+  }
+  30% {
+    transform: rotate(0deg);
+    box-shadow: 0 0 14px rgba(235, 193, 102, 0.35);
+  }
+  36% {
+    box-shadow: 0 0 0 transparent;
+  }
+  100% {
+    transform: rotate(0deg);
+    box-shadow: 0 0 0 transparent;
+  }
+}
+
+/* Remove old left-side positioning overrides — now inline in nav-actions */
+.nav-brand {
+  margin-left: 0;
+}
+
+/* ≤900px: No animations on Instagram badge or flying text in mobile/tablet viewport */
+@media (max-width: 900px) {
+  .insta-fly {
+    display: none !important;
+    animation: none !important;
+  }
+  .nav-insta-follow {
+    width: 36px;
+    height: 36px;
+  }
+  .nav-insta-follow,
+  .nav-insta-follow .insta-icon-wrap {
+    animation: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   SEARCH OVERLAY
+   ═══════════════════════════════════════════ */
+
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 24, 14, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s var(--transition-smooth);
+}
+
+.search-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.search-overlay-inner {
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 80px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.search-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.search-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 14px 40px 14px 44px;
+  background: rgba(27, 52, 40, 0.8);
+  border: 1px solid rgba(201, 162, 75, 0.3);
+  border-radius: 12px;
+  color: var(--off-white);
+  font: 400 15px/1.4 var(--font-body);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input::placeholder {
+  color: rgba(236, 225, 206, 0.4);
+}
+
+.search-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 162, 75, 0.15);
+}
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--gold-light);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.search-clear:hover {
+  opacity: 1;
+}
+
+.search-close-btn {
+  background: none;
+  border: 1px solid rgba(201, 162, 75, 0.3);
+  color: var(--gold-light);
+  font: 600 13px/1 var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 12px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.search-close-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold-pale);
+}
+
+/* Category filter pills */
+.search-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.search-filter-pill {
+  background: rgba(27, 52, 40, 0.7);
+  border: 1px solid rgba(201, 162, 75, 0.25);
+  color: var(--off-white);
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.search-filter-pill:hover {
+  border-color: var(--gold);
+  color: var(--gold-light);
+}
+
+.search-filter-pill.active {
+  background: var(--gold);
+  color: var(--forest-deep);
+  border-color: var(--gold);
+}
+
+/* Results grid */
+.search-results {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  padding-bottom: 32px;
+}
+
+.search-result-card {
+  background: rgba(236, 225, 206, 0.06);
+  border: 1px solid rgba(201, 162, 75, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.search-result-card:hover {
+  border-color: var(--gold);
+  box-shadow: 0 4px 20px rgba(201, 162, 75, 0.15);
+  transform: translateY(-2px);
+}
+
+.search-result-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.search-result-info {
+  padding: 10px 12px;
+}
+
+.search-result-info h4 {
+  font: 500 13px/1.3 var(--font-body);
+  color: var(--off-white);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-info .price {
+  font: 600 14px/1 var(--font-body);
+  color: var(--gold-light);
+}
+
+.search-result-info .price .original-price {
+  text-decoration: line-through;
+  color: rgba(236, 225, 206, 0.4);
+  font-weight: 400;
+  margin-right: 6px;
+  font-size: 12px;
+}
+
+.search-result-info .search-category-label {
+  font: 500 10px/1 var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.search-result-actions {
+  padding: 0 12px 10px;
+  display: flex;
+  gap: 6px;
+}
+
+.search-result-actions button {
+  flex: 1;
+  padding: 7px 4px;
+  font: 600 10px/1 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.search-result-actions .add-to-cart {
+  background: var(--gold);
+  color: var(--forest-deep);
+}
+
+.search-result-actions .add-to-cart:hover {
+  background: var(--gold-light);
+}
+
+.search-result-actions .order-whatsapp {
+  background: transparent;
+  border: 1px solid rgba(201, 162, 75, 0.4);
+  color: var(--gold-light);
+}
+
+.search-result-actions .order-whatsapp:hover {
+  border-color: var(--gold);
+  background: rgba(201, 162, 75, 0.1);
+}
+
+.search-prompt {
+  text-align: center;
+  color: rgba(236, 225, 206, 0.4);
+  font: italic 400 15px/1.6 var(--font-heading);
+  padding: 80px 20px;
+}
+
+.search-no-results {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.search-no-results h3 {
+  font: 500 20px/1.3 var(--font-heading);
+  color: var(--gold-light);
+  margin-bottom: 8px;
+}
+
+.search-no-results p {
+  color: rgba(236, 225, 206, 0.5);
+  font: 400 14px/1.5 var(--font-body);
+}
+
+.search-count {
+  font: 500 12px/1 var(--font-body);
+  color: rgba(236, 225, 206, 0.45);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .search-overlay-inner {
+    padding: 20px 16px 24px;
+  }
+  .search-results-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   POLICY PAGES (Terms of Service, Shipping & Returns)
+   ═══════════════════════════════════════════ */
+
+.policy-page {
+  padding-top: 120px;
+  padding-bottom: 80px;
+  min-height: 100vh;
+}
+
+.policy-container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.policy-title {
+  font: 500 clamp(28px, 5vw, 44px)/1.15 var(--font-heading);
+  color: var(--gold-light);
+  text-align: center;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+}
+
+.policy-updated {
+  text-align: center;
+  font: 400 13px/1.4 var(--font-body);
+  color: rgba(236, 225, 206, 0.45);
+  margin-top: 16px;
+  margin-bottom: 40px;
+}
+
+.policy-card {
+  background: rgba(236, 225, 206, 0.05);
+  border: 1px solid rgba(201, 162, 75, 0.18);
+  border-radius: 14px;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+
+.policy-card h2 {
+  font: 500 clamp(18px, 3vw, 22px)/1.3 var(--font-heading);
+  color: var(--gold-light);
+  margin-bottom: 14px;
+}
+
+.policy-card h3 {
+  font: 600 clamp(14px, 2vw, 16px)/1.3 var(--font-body);
+  color: var(--gold);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.policy-card p {
+  font: 400 14px/1.7 var(--font-body);
+  color: var(--off-white);
+  margin-bottom: 10px;
+}
+
+.policy-card p:last-child {
+  margin-bottom: 0;
+}
+
+.policy-card ul,
+.policy-card ol {
+  padding-left: 22px;
+  margin-bottom: 12px;
+}
+
+.policy-card li {
+  font: 400 14px/1.7 var(--font-body);
+  color: var(--off-white);
+  margin-bottom: 6px;
+}
+
+.policy-card a {
+  color: var(--gold-light);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+
+.policy-card a:hover {
+  color: var(--gold-pale);
+}
+
+/* Prominent return policy callout */
+.policy-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(201, 162, 75, 0.12), rgba(201, 162, 75, 0.04));
+  border: 1.5px solid rgba(201, 162, 75, 0.35);
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin-bottom: 32px;
+}
+
+.policy-badge svg {
+  width: 32px;
+  height: 32px;
+  color: var(--gold-light);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.policy-badge strong {
+  display: block;
+  font: 600 17px/1.3 var(--font-body);
+  color: var(--gold-light);
+  margin-bottom: 4px;
+}
+
+.policy-badge span {
+  font: 400 14px/1.5 var(--font-body);
+  color: var(--off-white);
+}
+
+@media (max-width: 600px) {
+  .policy-card {
+    padding: 22px 18px;
+  }
+  .policy-badge {
+    padding: 18px 16px;
+    gap: 12px;
   }
 }

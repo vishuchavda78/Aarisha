@@ -37,7 +37,7 @@ API docs are at `http://127.0.0.1:8000/docs` while the API runs. On Vercel the A
 | Frontend markup | Semantic HTML5 in `frontend/index.html` |
 | Styling | Plain CSS (`frontend/styles.css`) with custom properties, responsive media queries, animations, and inline SVG ornaments/icons; no framework |
 | Frontend interaction | Vanilla JavaScript in `frontend/script.js` |
-| Fonts | Google Fonts: **Bodoni Moda** (display/headings) + **Manrope** (body/labels) |
+| Fonts | Google Fonts: **Bodoni Moda** (display/headings) + **Manrope** (body/labels) + **Comic Neue** (Instagram badge text) |
 | API | FastAPI (`backend/app/main.py`), served locally by uvicorn, on Vercel via `api/index.py` (mounted under `/api`) |
 | Database | Supabase Postgres via the REST API (`/rest/v1/...`), using the server-side service-role key |
 | Auth | None — no user accounts; all API routes are public |
@@ -58,7 +58,9 @@ The-aarisha/
 │   ├── bracelets.jpeg       # Collection-card cover — Bracelets
 │   ├── earrings.jpeg        # Collection-card cover — Earrings
 │   ├── rings.jpeg           # Collection-card cover — Rings
-│   └── placeholder.svg      # Fallback for missing/broken product images
+│   ├── placeholder.svg      # Fallback for missing/broken product images
+│   ├── terms.html           # Terms of Service policy page
+│   └── shipping-returns.html # Shipping & Returns policy page (5-day return)
 ├── context.md               # This guide
 ├── DESIGN.md                # Frontend design system reference (v3 "Heritage Gold & Forest")
 ├── RULES.md                 # Agent operating rules
@@ -95,7 +97,11 @@ The Git index previously tracked `Earrings/`, `Rings/`, and `Bracelets/` product
 - **v3 "Heritage Gold & Forest" design (Stitch migration, 2026-08-11)**: deep forest green (`#1B3428` canvas, `#00180e` deepest) + antique gold (`#C9A24B`) + warm ivory plaques; Bodoni Moda + Manrope; full-page restyle of nav, hero (mirror frame + brand headline), step-well divider, category grid, footer, modal, and cart drawer.
 - **Fixed heritage backdrop**: one full-screen gold Rani ki Vav **monument line-art** layer behind every section at low rest opacity (0.12) with an edge vignette. The artwork is a highly detailed perspective view of the stepwell (processed from the owner's reference drawing `Gemini_Generated_Image_jgukn1jgukn1jguk.png` to a gold-on-transparent PNG `frontend/monument-lineart.png`) showing ornate columns, galleries, descending steps, and a surveyor figure.
 - **Cursor line-glow**: a drop-shadowed glow copy of the artwork is masked to the cursor via rAF-throttled `--glow-x/--glow-y` (~240px window) so the **lines themselves emit light** (not a radial light source); touch/keyboard devices get a 9s ambient pulse; `prefers-reduced-motion` renders a static raised motif instead.
-- Nav with three-part layout (**brand left, links centre, icon actions right** — explicit `grid-column` placement), sticky blur + gold hairline after 80px scroll; cart icon in the nav carries the live count badge. Nav links: Collections / Heritage / Testimonials / Contact. Below 900px the links collapse into a full-screen hamburger menu (brand left, ☰ + 🛍 right) with focus management and Escape/link-click close; the placeholder Search/Account icon buttons hide below 600px so the brand, hamburger, and cart stay uncrowded. Nav links and the brand close any open overlay (modal/menu/cart) before scrolling, so they work from the product section too.
+- Nav with three-part layout (**brand left, links centre, icon actions right** — explicit `grid-column` placement), sticky blur + gold hairline after 80px scroll; cart icon in the nav carries the live count badge. Nav links: Collections / Heritage / Testimonials / Contact. Below 900px the links collapse into a full-screen hamburger menu (brand left, ☰ + 🛍 right) with focus management and Escape/link-click close; the placeholder Search/Account icon buttons hide below 600px so the brand, hamburger, and cart stay uncrowded. Nav links and the brand close any open overlay (modal/menu/cart/search) before scrolling, so they work from the product section too.
+- **Instagram follow badge (top-left navbar)**: a branded Instagram icon with a "FOLLOW US" text in Comic Neue font that slides in periodically (every 6.5s) and enters the icon on exit. The icon shakes when the text arrives. Hidden text on ≤900px, icon-only. Respects `prefers-reduced-motion`.
+- **Product search overlay with caching**: full-screen glassmorphism overlay opened by a search button in the navbar. Debounced live search across product name/category/description with category filter pills. Two-tier cache: in-memory Map + `sessionStorage` (5-min TTL). Results show product cards with Add to Cart and WhatsApp order buttons. Focus trap, Escape close, scroll lock.
+- **Terms of Service page** (`frontend/terms.html`): comprehensive 10-section ToS covering acceptance, products, ordering, IP, user responsibilities, privacy, liability, modifications, governing law, and contact info.
+- **Shipping & Returns page** (`frontend/shipping-returns.html`): detailed shipping information (metro/rest-of-India/remote timelines), prominent 5-day return policy badge, return eligibility/process/inspection rules, exchanges, damaged product handling, and jewellery care guide.
 - Hero: Ornate baroque gold mirror frame (`mirror-frame.png`), "Anti Tarnish Fine Jewellery" eyebrow, "The Aarisha" display headline, italic tagline, and a prominent radiant Antique Gold jewel CTA ("Explore Collections") featuring a 4.5s specular light shimmer, an ambient breathing golden halo, and a dynamic arrow hover drift.
 - Scrolling "Step-Well" divider (three descending gold lines) as the section break.
 - Four collection cards (Neck Pieces, Bracelets, Earrings, Rings) as ivory plaques with an offset gold frame and hover lift, opening the full-screen product modal. Each card's cover image is a real product photograph (`necklace.jpeg`/`bracelets.jpeg`/`earrings.jpeg`/`rings.jpeg`); `placeholder.svg` is only the fallback for broken images.
@@ -202,7 +208,7 @@ Active operating manual: `UISKILL.md` (codename `Weave`). Design-system source o
 ## Current functional boundaries
 
 - Contact form/`#contact` section is visible (v3) but remains a placeholder: it deliberately prevents default submit and sends nothing.
-- Social and navigation `href="#"` links are placeholders needing real URLs.
+- Social and navigation `href="#"` links are placeholders needing real URLs (privacy policy pending; terms/shipping-returns now implemented).
 - Cart is per-tab (`sessionStorage`); a refresh in the same tab keeps it, a new tab does not.
 - WhatsApp is the only ordering path; the API records no orders and takes no payment.
 - No authentication or user accounts remain; the API is fully public (catalogue reads + WhatsApp order link).

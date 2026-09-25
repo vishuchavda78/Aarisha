@@ -47,3 +47,13 @@ async def read_placeholder():
 @app.get("/favicon.ico")
 async def read_favicon():
     return FileResponse(get_file_path("Logo.png"))
+
+@app.get("/terms")
+@app.get("/terms.html")
+async def read_terms():
+    return FileResponse(get_file_path("terms.html"))
+
+@app.get("/shipping-returns")
+@app.get("/shipping-returns.html")
+async def read_shipping_returns():
+    return FileResponse(get_file_path("shipping-returns.html"))

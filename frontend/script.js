@@ -58,7 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('mobileMenu').classList.contains('open') ||
       document.getElementById('collectionModal').classList.contains('open') ||
       document.getElementById('cartDrawer').classList.contains('open') ||
-      (document.getElementById('orderModal') && document.getElementById('orderModal').classList.contains('open'));
+      (document.getElementById('orderModal') && document.getElementById('orderModal').classList.contains('open')) ||
+      (document.getElementById('searchOverlay') && document.getElementById('searchOverlay').classList.contains('open'));
     document.body.style.overflow = anyOpen ? 'hidden' : '';
   }
 
@@ -168,7 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
-  revealElements.forEach(el => revealObserver.observe(el));
+  if (window.innerWidth <= 768) {
+    revealElements.forEach(el => el.classList.add('visible'));
+  } else {
+    revealElements.forEach(el => revealObserver.observe(el));
+  }
 
   // ── Generate Featured Product Cards ──
   const featuredScroll = document.getElementById('featuredScroll');
@@ -197,7 +202,11 @@ document.addEventListener('DOMContentLoaded', () => {
       featuredScroll.appendChild(card);
       card.querySelector('.add-to-cart').addEventListener('click', (e) => addToCart(product, e.currentTarget, e));
       card.querySelector('.order-whatsapp').addEventListener('click', (e) => orderOnWhatsApp(product, e.currentTarget));
-      revealObserver.observe(card);
+      if (window.innerWidth <= 768) {
+        card.classList.add('visible');
+      } else {
+        revealObserver.observe(card);
+      }
     }))
       .catch((err) => {
         console.error('Error loading featured products:', err);
@@ -360,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const cartRect = cartToggle.getBoundingClientRect();
 
-      if (startRect && cartRect.width > 0 && imgSrc) {
+      if (window.innerWidth > 768 && startRect && cartRect.width > 0 && imgSrc) {
         // Thumbnail starts matching source image aspect ratio or compact jewel plaque (max 80px)
         const initialWidth = Math.min(startRect.width, 88);
         const initialHeight = Math.min(startRect.height, 88);
@@ -790,14 +799,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Escape closes the topmost overlay; Tab is trapped inside open overlays
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (orderModal && orderModal.classList.contains('open')) closeOrderModal();
+      const searchOvl = document.getElementById('searchOverlay');
+      if (searchOvl && searchOvl.classList.contains('open') && typeof closeSearch === 'function') closeSearch();
+      else if (orderModal && orderModal.classList.contains('open')) closeOrderModal();
       else if (mobileMenu.classList.contains('open')) setMenuOpen(false);
       else if (collectionModal.classList.contains('open')) closeCollectionModal();
       else if (document.getElementById('cartDrawer').classList.contains('open')) setCartOpen(false);
       return;
     }
     if (e.key === 'Tab') {
-      if (orderModal && orderModal.classList.contains('open')) trapFocus(orderModal, e);
+      const searchOvl = document.getElementById('searchOverlay');
+      if (searchOvl && searchOvl.classList.contains('open')) trapFocus(searchOvl, e);
+      else if (orderModal && orderModal.classList.contains('open')) trapFocus(orderModal, e);
       else if (collectionModal.classList.contains('open')) trapFocus(collectionModal, e);
       else if (document.getElementById('cartDrawer').classList.contains('open')) trapFocus(document.getElementById('cartDrawer'), e);
     }
@@ -814,6 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mobileMenu.classList.contains('open')) setMenuOpen(false);
       if (collectionModal.classList.contains('open')) closeCollectionModal();
       if (document.getElementById('cartDrawer').classList.contains('open')) setCartOpen(false);
+      if (searchOverlay && searchOverlay.classList.contains('open')) closeSearch();
       const target = document.querySelector(this.getAttribute('href'));
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -821,4 +835,198 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // ═══════════════════════════════════════════
+  // PRODUCT SEARCH WITH CACHING
+  // Two-tier cache: in-memory Map + sessionStorage (5-min TTL).
+  // Debounced live search across name, category, and description.
+  // ═══════════════════════════════════════════
+
+  const searchOverlay = document.getElementById('searchOverlay');
+  const searchToggle = document.getElementById('searchToggle');
+  const searchClose = document.getElementById('searchClose');
+  const searchInput = document.getElementById('searchInput');
+  const searchClear = document.getElementById('searchClear');
+  const searchResults = document.getElementById('searchResults');
+  const searchFilters = document.getElementById('searchFilters');
+
+  if (searchOverlay && searchToggle) {
+    const CACHE_KEY = 'aarisha_catalogue_cache';
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+    let catalogueMemoryCache = null;
+    let catalogueCacheTime = 0;
+    const queryResultCache = new Map();
+    let activeFilter = 'all';
+    let searchDebounceTimer = null;
+    let lastFocusedSearch = null;
+
+    // Retrieve catalogue from cache or fetch from API
+    async function getCatalogue() {
+      const now = Date.now();
+
+      // Tier 1: memory cache
+      if (catalogueMemoryCache && (now - catalogueCacheTime) < CACHE_TTL) {
+        return catalogueMemoryCache;
+      }
+
+      // Tier 2: sessionStorage
+      try {
+        const stored = sessionStorage.getItem(CACHE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.ts && (now - parsed.ts) < CACHE_TTL && Array.isArray(parsed.data)) {
+            catalogueMemoryCache = parsed.data;
+            catalogueCacheTime = parsed.ts;
+            return catalogueMemoryCache;
+          }
+        }
+      } catch (_) { /* corrupt storage — re-fetch */ }
+
+      // Tier 3: network fetch
+      try {
+        const response = await fetch(`${API_BASE_URL}/products`);
+        if (!response.ok) return catalogueMemoryCache || [];
+        const products = await response.json();
+        catalogueMemoryCache = products;
+        catalogueCacheTime = now;
+        queryResultCache.clear();
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: now, data: products }));
+        } catch (_) { /* storage full — memory cache still works */ }
+        return products;
+      } catch (_) {
+        return catalogueMemoryCache || [];
+      }
+    }
+
+    function openSearch() {
+      lastFocusedSearch = document.activeElement;
+      searchOverlay.classList.add('open');
+      searchOverlay.setAttribute('aria-hidden', 'false');
+      searchOverlay.inert = false;
+      updateScrollLock();
+      setTimeout(() => searchInput.focus(), 60);
+    }
+
+    function closeSearch() {
+      searchOverlay.classList.remove('open');
+      searchOverlay.setAttribute('aria-hidden', 'true');
+      searchOverlay.inert = true;
+      updateScrollLock();
+      if (lastFocusedSearch) lastFocusedSearch.focus();
+    }
+
+    searchToggle.addEventListener('click', openSearch);
+    searchClose.addEventListener('click', closeSearch);
+
+    // Clear button
+    if (searchClear) {
+      searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        searchClear.hidden = true;
+        performSearch();
+        searchInput.focus();
+      });
+    }
+
+    // Category filter pills
+    if (searchFilters) {
+      searchFilters.addEventListener('click', (e) => {
+        const pill = e.target.closest('.search-filter-pill');
+        if (!pill) return;
+        searchFilters.querySelectorAll('.search-filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        activeFilter = pill.dataset.filter;
+        performSearch();
+      });
+    }
+
+    // Debounced search input
+    searchInput.addEventListener('input', () => {
+      if (searchClear) searchClear.hidden = !searchInput.value;
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(performSearch, 150);
+    });
+
+    async function performSearch() {
+      const query = searchInput.value.trim().toLowerCase();
+
+      if (!query) {
+        searchResults.innerHTML = '<p class="search-prompt">Start typing to discover our curated collection\u2026</p>';
+        return;
+      }
+
+      const cacheKey = `${query}|${activeFilter}`;
+      if (queryResultCache.has(cacheKey)) {
+        renderSearchResults(queryResultCache.get(cacheKey), query);
+        return;
+      }
+
+      const products = await getCatalogue();
+      const filtered = products.filter(p => {
+        // Category filter
+        if (activeFilter !== 'all' && p.category !== activeFilter) return false;
+        // Text match across name, category, and description
+        const text = `${p.name || ''} ${p.category || ''} ${p.description || ''}`.toLowerCase();
+        return text.includes(query);
+      });
+
+      queryResultCache.set(cacheKey, filtered);
+      renderSearchResults(filtered, query);
+    }
+
+    function renderSearchResults(products, query) {
+      if (!products.length) {
+        searchResults.innerHTML = `
+          <div class="search-no-results">
+            <h3>No pieces found</h3>
+            <p>Try a different search term or browse our collections.</p>
+          </div>`;
+        return;
+      }
+
+      const countLabel = `<span class="search-count">${products.length} ${products.length === 1 ? 'piece' : 'pieces'} found</span>`;
+      const cards = products.map(p => {
+        const hasDiscount = p.original_price && Number(p.price) < Number(p.original_price);
+        const priceHTML = hasDiscount
+          ? `<span class="original-price">${money(p.original_price)}</span>${money(p.price)}`
+          : money(p.price);
+        const outOfStock = p.in_stock === false;
+        const categoryLabel = p.category ? p.category.charAt(0).toUpperCase() + p.category.slice(1) : '';
+        return `
+          <div class="search-result-card" data-product-id="${p.id}">
+            <img src="${p.image_url || 'placeholder.svg'}" alt="${p.name}" loading="lazy">
+            <div class="search-result-info">
+              ${categoryLabel ? `<span class="search-category-label">${categoryLabel}</span>` : ''}
+              <h4>${p.name}</h4>
+              <span class="price">${priceHTML}</span>
+            </div>
+            <div class="search-result-actions">
+              <button type="button" class="add-to-cart" ${outOfStock ? 'disabled' : ''}>${outOfStock ? 'Sold Out' : 'Add to Cart'}</button>
+              <button type="button" class="order-whatsapp" ${outOfStock ? 'disabled' : ''}>WhatsApp</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      searchResults.innerHTML = `${countLabel}<div class="search-results-grid">${cards}</div>`;
+
+      // Attach cart/order handlers to search result buttons
+      searchResults.querySelectorAll('.search-result-card').forEach(card => {
+        const productId = card.dataset.productId;
+        const product = products.find(p => String(p.id) === productId);
+        if (!product) return;
+
+        const addBtn = card.querySelector('.add-to-cart');
+        if (addBtn && !addBtn.disabled) {
+          addBtn.addEventListener('click', (e) => addToCart(product, e.currentTarget, e));
+        }
+
+        const waBtn = card.querySelector('.order-whatsapp');
+        if (waBtn && !waBtn.disabled) {
+          waBtn.addEventListener('click', (e) => orderOnWhatsApp(product, e.currentTarget));
+        }
+      });
+    }
+  }
+
 });
+
